@@ -11,34 +11,102 @@ BasicBlock* IRBuilder::createBasicBlock(const std::string& name) {
     if (blockMap.count(name)) {
         throw std::runtime_error("Block '" + name + "' already exists!");
     }
+    
     auto bb = std::make_unique<BasicBlock>(name);
+
     currentBlock = bb.get();
     blockMap[name] = currentBlock;
     blocks.push_back(std::move(bb));
+    
     return currentBlock;
 }
 
-void IRBuilder::createInstruction(const std::string& code) {
-    if (!currentBlock) throw std::runtime_error("No current block!");
+std::string IRBuilder::createAdd(const std::string& lhs, const std::string& rhs) {
+        ensureNoTerminator();
+        auto inst = std::make_unique<BinaryInst>(BinaryInst::Add, lhs, rhs);
+        inst->name = getNewName();
+        std::string name = inst->name;
+        currentBlock->instructions.push_back(std::move(inst));
+        return name;
+    }
+
+std::string IRBuilder::createSub(const std::string& lhs, const std::string& rhs) {
     ensureNoTerminator();
-    currentBlock->instructions.push_back(std::make_unique<RegularInst>(code));
+    auto inst = std::make_unique<BinaryInst>(BinaryInst::Sub, lhs, rhs);
+    inst->name = getNewName();
+    std::string name = inst->name;
+    currentBlock->instructions.push_back(std::move(inst));
+    return name;
 }
+
+std::string IRBuilder::createMul(const std::string& lhs, const std::string& rhs) {
+    ensureNoTerminator();
+    auto inst = std::make_unique<BinaryInst>(BinaryInst::Mul, lhs, rhs);
+    inst->name = getNewName();
+    std::string name = inst->name;
+    currentBlock->instructions.push_back(std::move(inst));
+    return name;
+}
+
+std::string IRBuilder::createICmp(ICmpInst::Pred pred, const std::string& lhs, const std::string& rhs) {
+    ensureNoTerminator();
+    auto inst = std::make_unique<ICmpInst>(pred, lhs, rhs);
+    inst->name = getNewName();
+    std::string name = inst->name;
+    currentBlock->instructions.push_back(std::move(inst));
+    return name;
+}
+
+std::string IRBuilder::createAlloca() {
+    ensureNoTerminator();
+    auto inst = std::make_unique<AllocaInst>();
+    inst->name = getNewName();
+    std::string name = inst->name;
+    currentBlock->instructions.push_back(std::move(inst));
+    return name;
+}
+
+std::string IRBuilder::createLoad(const std::string& ptr) {
+    ensureNoTerminator();
+    auto inst = std::make_unique<LoadInst>(ptr);
+    inst->name = getNewName();
+    std::string name = inst->name;
+    currentBlock->instructions.push_back(std::move(inst));
+    return name;
+}
+
+void IRBuilder::createStore(const std::string& val, const std::string& ptr) {
+    ensureNoTerminator();
+    currentBlock->instructions.push_back(std::make_unique<StoreInst>(val, ptr));
+}
+
+// void IRBuilder::createInstruction(const std::string& code) {
+//     if (!currentBlock) throw std::runtime_error("No current block!");
+//     ensureNoTerminator();
+//     currentBlock->instructions.push_back(std::make_unique<RegularInst>(code));
+// }
 
 void IRBuilder::createBr(const std::string& condLabel, const std::string& thenLabel, const std::string& elseLabel) {
     std::vector<std::string> labels = {thenLabel, elseLabel};
-    std::string code = "br i1 " + condLabel + ", label %" + thenLabel + ", label %" + elseLabel;
+    
+    std::string code = "br" + condLabel + ", label %" + thenLabel + ", label %" + elseLabel;
+    
     currentBlock->instructions.push_back(std::make_unique<TerminatorInst>(code, labels));
 }
 
 void IRBuilder::createBr(const std::string& targetLabel) {
     std::vector<std::string> labels = {targetLabel};
+    
     std::string code = "br label %" + targetLabel;
+    
     currentBlock->instructions.push_back(std::make_unique<TerminatorInst>(code, labels));
 }
 
 void IRBuilder::createRet(const std::string& val) {
     std::string code = val.empty() ? "ret void" : ("ret i32 " + val);
+    
     std::vector<std::string> label = {};
+    
     currentBlock->instructions.push_back(std::make_unique<TerminatorInst>(code, label));
 }
 
@@ -46,8 +114,11 @@ PhiInst* IRBuilder::createPHI() {
     if (!currentBlock) 
         throw std::runtime_error("No current block!");
     ensureNoTerminator();
-    auto phi = std::make_unique<PhiInst>();
+    
+    auto phi = std::make_unique<PhiInst>( );
+    phi->name = getNewName();
     PhiInst* raw = phi.get();
     currentBlock->instructions.push_back(std::move(phi));
+    
     return raw;
 }

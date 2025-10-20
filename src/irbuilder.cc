@@ -22,56 +22,80 @@ BasicBlock* IRBuilder::createBasicBlock(const std::string& name) {
 }
 
 std::string IRBuilder::createAdd(const std::string& lhs, const std::string& rhs) {
-        ensureNoTerminator();
-        auto inst = std::make_unique<BinaryInst>(BinaryInst::Add, lhs, rhs);
-        inst->name = getNewName();
-        std::string name = inst->name;
-        currentBlock->instructions.push_back(std::move(inst));
-        return name;
-    }
+    ensureNoTerminator();
+    
+    auto inst = std::make_unique<BinaryInst>(BinaryInst::Add, lhs, rhs);
+    
+    inst->name = getNewName();
+    std::string name = inst->name;
+    
+    currentBlock->instructions.push_back(std::move(inst));
+    
+    return name;
+}
 
 std::string IRBuilder::createSub(const std::string& lhs, const std::string& rhs) {
     ensureNoTerminator();
+    
     auto inst = std::make_unique<BinaryInst>(BinaryInst::Sub, lhs, rhs);
+    
     inst->name = getNewName();
     std::string name = inst->name;
+    
     currentBlock->instructions.push_back(std::move(inst));
+    
     return name;
 }
 
 std::string IRBuilder::createMul(const std::string& lhs, const std::string& rhs) {
     ensureNoTerminator();
+    
     auto inst = std::make_unique<BinaryInst>(BinaryInst::Mul, lhs, rhs);
+    
     inst->name = getNewName();
     std::string name = inst->name;
+    
     currentBlock->instructions.push_back(std::move(inst));
+    
     return name;
 }
 
 std::string IRBuilder::createICmp(ICmpInst::Pred pred, const std::string& lhs, const std::string& rhs) {
     ensureNoTerminator();
+    
     auto inst = std::make_unique<ICmpInst>(pred, lhs, rhs);
+    
     inst->name = getNewName();
     std::string name = inst->name;
+    
     currentBlock->instructions.push_back(std::move(inst));
+    
     return name;
 }
 
 std::string IRBuilder::createAlloca() {
     ensureNoTerminator();
+    
     auto inst = std::make_unique<AllocaInst>();
+    
     inst->name = getNewName();
     std::string name = inst->name;
+    
     currentBlock->instructions.push_back(std::move(inst));
+    
     return name;
 }
 
 std::string IRBuilder::createLoad(const std::string& ptr) {
     ensureNoTerminator();
+    
     auto inst = std::make_unique<LoadInst>(ptr);
+    
     inst->name = getNewName();
     std::string name = inst->name;
+    
     currentBlock->instructions.push_back(std::move(inst));
+    
     return name;
 }
 
@@ -116,8 +140,10 @@ PhiInst* IRBuilder::createPHI() {
     ensureNoTerminator();
     
     auto phi = std::make_unique<PhiInst>( );
+    
     phi->name = getNewName();
     PhiInst* raw = phi.get();
+    
     currentBlock->instructions.push_back(std::move(phi));
     
     return raw;

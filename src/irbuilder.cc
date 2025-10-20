@@ -148,3 +148,24 @@ PhiInst* IRBuilder::createPHI() {
     
     return raw;
 }
+
+void IRBuilder::buildCFG() {
+    for (auto& bb : blocks) {
+        bb->successors.clear();
+        bb->predecessors.clear();
+    }
+    for (auto& bb : blocks) {
+        if (!bb->hasTerminator()) continue;
+        auto term = bb->instructions.back().get();
+        auto labels = term->getSuccessorLabels();
+        for (const auto& label : labels) {
+            auto it = blockMap.find(label);
+            if (it == blockMap.end()) {
+                throw std::runtime_error("Successor block '" + label + "' not found!");
+            }
+            BasicBlock* succ = it->second;
+            bb->successors.push_back(succ);
+            succ->predecessors.push_back(bb.get());
+        }
+    }
+}

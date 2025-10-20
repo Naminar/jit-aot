@@ -7,6 +7,8 @@ class BasicBlock {
 public:
     std::string name;
     std::vector<std::unique_ptr<Instruction>> instructions;
+    std::vector<BasicBlock*> successors;
+    std::vector<BasicBlock*> predecessors;
 
     BasicBlock(const std::string& n) : name(n) {}
 
@@ -70,6 +72,8 @@ public:
     void createRet(const std::string& val = "");
 
     PhiInst* createPHI();
+
+    void buildCFG();
 
     void dump() const {
         for (const auto& bb : blocks) {

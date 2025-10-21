@@ -19,3 +19,21 @@ if(CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
 elseif(MSVC)
     target_compile_options(build_ir PRIVATE /W4)
 endif()
+
+add_library(ir_lib STATIC src/irbuilder.cc)
+target_include_directories(ir_lib PUBLIC include src)
+
+target_link_libraries(build_ir PRIVATE ir_lib)
+
+enable_testing()
+
+find_package(GTest REQUIRED)
+
+add_executable(test_dominators tests/test_dominators_set.cc)
+
+target_link_libraries(test_dominators PRIVATE ir_lib GTest::gtest GTest::gtest_main)
+
+add_test(NAME GeneralTest COMMAND test_dominators)
+add_test(NAME Test1 COMMAND test_dominators)
+add_test(NAME Test2 COMMAND test_dominators)
+add_test(NAME Test3 COMMAND test_dominators)

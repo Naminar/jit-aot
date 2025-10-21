@@ -75,6 +75,12 @@ public:
 
     void buildCFG();
 
+    void dfsVisit(BasicBlock* node,
+              std::unordered_set<BasicBlock*>& visited,
+              BasicBlock* skip = nullptr);
+    
+    std::unordered_map<std::string, std::unordered_set<std::string>> printDominators();
+
     void dump() const {
         for (const auto& bb : blocks) {
             bb->print();

@@ -169,3 +169,75 @@ void IRBuilder::buildCFG() {
         }
     }
 }
+
+void IRBuilder::dfsVisit(BasicBlock* node,
+              std::unordered_set<BasicBlock*>& visited,
+              BasicBlock* skip) {
+    if (!node || node == skip || visited.count(node)) return;
+    visited.insert(node);
+    for (auto* succ : node->successors)
+        dfsVisit(succ, visited, skip);
+}
+
+std::unordered_map<std::string, std::unordered_set<std::string>> 
+IRBuilder::printDominators() {
+    buildCFG();
+    // if (blocks.empty()) return;
+
+    BasicBlock* entry = blocks.front().get();
+
+    std::unordered_set<BasicBlock*> reachAll;
+    dfsVisit(entry, reachAll, nullptr);
+
+    std::unordered_map<BasicBlock*, std::unordered_set<BasicBlock*>> dominates;
+
+    for (auto& bbPtr : blocks) {
+        BasicBlock* b = bbPtr.get();
+
+        if (b == entry) 
+            continue;
+
+        std::unordered_set<BasicBlock*> reachWithout;
+        dfsVisit(entry, reachWithout, b);
+
+        for (auto* r : reachAll) {
+            if (!reachWithout.count(r)) {
+                dominates[b].insert(r);
+            }
+        }
+
+        dominates[b].insert(b);
+    }
+
+    for (auto* r : reachAll) 
+        dominates[entry].insert(r);
+
+    std::unordered_map<std::string, std::unordered_set<std::string>> result;
+
+    std::cout << "\n=== Dominator ===\n";
+    for (auto& bbPtr : blocks) {
+        std::unordered_set<std::string> names;
+        BasicBlock* b = bbPtr.get();
+        
+        std::cout << "Block " << b->name << " dominates: { ";
+        
+        for (auto* d : dominates[b]) {
+            std::cout << d->name << " ";
+            names.insert(d->name);
+        }
+
+        result[b->name] = std::move(names);
+        std::cout << "}\n";
+    }
+
+    // std::unordered_map<std::string, std::unordered_set<std::string>> result;
+    // for (auto& b : blocks) {
+    //     std::unordered_set<std::string> names;
+    //     for (auto* d : dominates[b.get()]) 
+    //         names.insert(d->name);
+    //     result[b->name] = std::move(names);
+    // }
+
+    return result;
+
+}

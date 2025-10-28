@@ -15,97 +15,97 @@ BasicBlock* IRBuilder::createBasicBlock(const std::string& name) {
     if (blockMap.count(name)) {
         throw std::runtime_error("Block '" + name + "' already exists!");
     }
-    
+
     auto bb = std::make_unique<BasicBlock>(name);
 
     currentBlock = bb.get();
     blockMap[name] = currentBlock;
     blocks.push_back(std::move(bb));
-    
+
     return currentBlock;
 }
 
 
 std::string IRBuilder::createAdd(const std::string& lhs, const std::string& rhs) {
     ensureNoTerminator();
-    
+
     auto inst = std::make_unique<BinaryInst>(BinaryInst::Add, lhs, rhs);
-    
+
     inst->name = getNewName();
     std::string name = inst->name;
-    
+
     currentBlock->instructions.push_back(std::move(inst));
-    
+
     return name;
 }
 
 
 std::string IRBuilder::createSub(const std::string& lhs, const std::string& rhs) {
     ensureNoTerminator();
-    
+
     auto inst = std::make_unique<BinaryInst>(BinaryInst::Sub, lhs, rhs);
-    
+
     inst->name = getNewName();
     std::string name = inst->name;
-    
+
     currentBlock->instructions.push_back(std::move(inst));
-    
+
     return name;
 }
 
 
 std::string IRBuilder::createMul(const std::string& lhs, const std::string& rhs) {
     ensureNoTerminator();
-    
+
     auto inst = std::make_unique<BinaryInst>(BinaryInst::Mul, lhs, rhs);
-    
+
     inst->name = getNewName();
     std::string name = inst->name;
-    
+
     currentBlock->instructions.push_back(std::move(inst));
-    
+
     return name;
 }
 
 
 std::string IRBuilder::createICmp(ICmpInst::Pred pred, const std::string& lhs, const std::string& rhs) {
     ensureNoTerminator();
-    
+
     auto inst = std::make_unique<ICmpInst>(pred, lhs, rhs);
-    
+
     inst->name = getNewName();
     std::string name = inst->name;
-    
+
     currentBlock->instructions.push_back(std::move(inst));
-    
+
     return name;
 }
 
 
 std::string IRBuilder::createAlloca() {
     ensureNoTerminator();
-    
+
     auto inst = std::make_unique<AllocaInst>();
-    
+
     inst->name = getNewName();
     std::string name = inst->name;
-    
+
     currentBlock->instructions.push_back(std::move(inst));
-    
+
     return name;
 }
 
 
 std::string IRBuilder::createLoad(const std::string& ptr) {
     ensureNoTerminator();
-    
+
     auto inst = std::make_unique<LoadInst>(ptr);
-    
+
     inst->name = getNewName();
     std::string name = inst->name;
-    
+
     currentBlock->instructions.push_back(std::move(inst));
-    
+
     return name;
 }
 
@@ -124,43 +124,43 @@ void IRBuilder::createStore(const std::string& val, const std::string& ptr) {
 
 void IRBuilder::createBr(const std::string& condLabel, const std::string& thenLabel, const std::string& elseLabel) {
     std::vector<std::string> labels = {thenLabel, elseLabel};
-    
+
     std::string code = "br" + condLabel + ", label %" + thenLabel + ", label %" + elseLabel;
-    
+
     currentBlock->instructions.push_back(std::make_unique<TerminatorInst>(code, labels));
 }
 
 
 void IRBuilder::createBr(const std::string& targetLabel) {
     std::vector<std::string> labels = {targetLabel};
-    
+
     std::string code = "br label %" + targetLabel;
-    
+
     currentBlock->instructions.push_back(std::make_unique<TerminatorInst>(code, labels));
 }
 
 
 void IRBuilder::createRet(const std::string& val) {
     std::string code = val.empty() ? "ret void" : ("ret i32 " + val);
-    
+
     std::vector<std::string> label = {};
-    
+
     currentBlock->instructions.push_back(std::make_unique<TerminatorInst>(code, label));
 }
 
 
 PhiInst* IRBuilder::createPHI() {
-    if (!currentBlock) 
+    if (!currentBlock)
         throw std::runtime_error("No current block!");
     ensureNoTerminator();
-    
+
     auto phi = std::make_unique<PhiInst>( );
-    
+
     phi->name = getNewName();
     PhiInst* raw = phi.get();
-    
+
     currentBlock->instructions.push_back(std::move(phi));
-    
+
     return raw;
 }
 
@@ -197,12 +197,12 @@ void IRBuilder::dfsVisit(BasicBlock* node,
 }
 
 
-// std::unordered_map<std::string, std::unordered_set<std::string>> 
+// std::unordered_map<std::string, std::unordered_set<std::string>>
 void IRBuilder::computeDominators() {
     buildCFG();
     dominates.clear();
 
-    if (blocks.empty()) 
+    if (blocks.empty())
         return;
     BasicBlock* entry = blocks.front().get();
 
@@ -212,7 +212,7 @@ void IRBuilder::computeDominators() {
     for (auto& bbPtr : blocks) {
         BasicBlock* b = bbPtr.get();
 
-        if (b == entry) 
+        if (b == entry)
             continue;
 
         std::unordered_set<BasicBlock*> reachWithout;
@@ -226,12 +226,12 @@ void IRBuilder::computeDominators() {
         dominates[b].insert(b);
     }
 
-    for (auto* r : reachAll) 
+    for (auto* r : reachAll)
         dominates[entry].insert(r);
 }
 
 
-std::unordered_map<std::string, std::unordered_set<std::string>> 
+std::unordered_map<std::string, std::unordered_set<std::string>>
 IRBuilder::printDominators() {
     computeDominators();
     // if (blocks.empty()) return;
@@ -242,9 +242,9 @@ IRBuilder::printDominators() {
     for (auto& bbPtr : blocks) {
         std::unordered_set<std::string> names;
         BasicBlock* b = bbPtr.get();
-        
+
         std::cout << "Block " << b->name << " dominates: { ";
-        
+
         for (auto* d : dominates[b]) {
             std::cout << d->name << " ";
             names.insert(d->name);
@@ -266,11 +266,11 @@ void IRBuilder::computeRPO(std::vector<BasicBlock*>& outRPO) {
     std::vector<BasicBlock*> postorder;
 
     std::function<void(BasicBlock*)> dfs = [&](BasicBlock* n) {
-        if (!n || vis.count(n)) 
+        if (!n || vis.count(n))
             return;
         vis.insert(n);
-        
-        for (auto* s : n->successors) 
+
+        for (auto* s : n->successors)
             dfs(s);
         postorder.push_back(n);
     };
@@ -281,9 +281,9 @@ void IRBuilder::computeRPO(std::vector<BasicBlock*>& outRPO) {
 }
 
 
-void IRBuilder::collectBackEdges( 
-    std::unordered_map<BasicBlock*, 
-    std::vector<BasicBlock*>> &backEdgesByHeader, 
+void IRBuilder::collectBackEdges(
+    std::unordered_map<BasicBlock*,
+    std::vector<BasicBlock*>> &backEdgesByHeader,
     std::unordered_map<BasicBlock*, bool> &isIrreducibleFlag
 ) {
     backEdgesByHeader.clear();
@@ -353,12 +353,12 @@ void IRBuilder::analyzeLoops() {
     }
 
     auto assignBlockToLoop = [&](Loop* L, BasicBlock* B) {
-        if (!L || !B) 
+        if (!L || !B)
             return;
 
-        if (B->parentLoop == L) 
+        if (B->parentLoop == L)
             return;
-        
+
             if (B->parentLoop != nullptr && B->parentLoop != L) {
             L->addInnerLoop(B->parentLoop);
             return;
@@ -378,10 +378,44 @@ void IRBuilder::analyzeLoops() {
     for (Loop* L : loopList) {
         BasicBlock* header = L->header;
         if (L->irreducible) {
-            for (auto* src : L->backEdges) {
-                assignBlockToLoop(L, src);
+            std::unordered_set<BasicBlock*> reachable_forward;
+            std::stack<BasicBlock*> fwd_stack;
+
+            fwd_stack.push(header);
+            reachable_forward.insert(header);
+
+            while(!fwd_stack.empty()) {
+                BasicBlock* current = fwd_stack.top(); fwd_stack.pop();
+                for (auto* succ : current->successors) {
+                    if (reachable_forward.find(succ) == reachable_forward.end()) {
+                        reachable_forward.insert(succ);
+                        fwd_stack.push(succ);
+                    }
+                }
             }
-            assignBlockToLoop(L, header);
+
+            std::unordered_set<BasicBlock*> reachable_backward;
+            std::stack<BasicBlock*> bwd_stack;
+
+            bwd_stack.push(header);
+            reachable_backward.insert(header);
+
+            while(!bwd_stack.empty()) {
+                BasicBlock* current = bwd_stack.top(); bwd_stack.pop();
+                for (auto* pred : current->predecessors) {
+                    if (reachable_backward.find(pred) == reachable_backward.end()) {
+                        reachable_backward.insert(pred);
+                        bwd_stack.push(pred);
+                    }
+                }
+            }
+
+            for (BasicBlock* block : reachable_forward) {
+                if (reachable_backward.count(block)) {
+                    assignBlockToLoop(L, block);
+                }
+            }
+
         } else {
             std::unordered_set<BasicBlock*> visited;
             visited.insert(header);

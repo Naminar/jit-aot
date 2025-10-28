@@ -209,9 +209,11 @@ TEST(Test3, Test3) {
     auto actualLoops = builder.loopList;
     
     std::vector<ExpectedLoopInfo> expectedLoops = {
-    {"G", {"D"}, {"D", "G"}}, 
+    {"G", {"D"}, {"C", "D", "G"}}, 
     {"B", {"F"}, {"E", "F", "B"}}
     };
+
+    verifyLoops(actualLoops, expectedLoops);
 
     std::unordered_map<std::string, std::unordered_set<std::string>> expected = {
         {"entry", {"entry", "H", "B", "G", "E", "F", "C", "D", "I"}},

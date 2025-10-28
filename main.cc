@@ -111,43 +111,43 @@
 // }
 
 
-// int main() {
-//     IRBuilder builder;
-//     builder.createBasicBlock("entry");
-//     builder.createBr("B");
+int main() {
+    IRBuilder builder;
+    builder.createBasicBlock("entry");
+    builder.createBr("B");
 
-//     builder.createBasicBlock("B");
-//     builder.createBr(" ", "E", "C");
+    builder.createBasicBlock("B");
+    builder.createBr(" ", "E", "C");
 
-//     builder.createBasicBlock("C");
-//     builder.createBr("D");
+    builder.createBasicBlock("C");
+    builder.createBr("D");
 
-//     builder.createBasicBlock("D");
-//     builder.createBr("G");
+    builder.createBasicBlock("D");
+    builder.createBr("G");
 
-//     builder.createBasicBlock("E");
-//     builder.createBr(" ", "F", "D");
+    builder.createBasicBlock("E");
+    builder.createBr(" ", "F", "D");
 
-//     builder.createBasicBlock("F");
-//     builder.createBr(" ", "B", "H");
+    builder.createBasicBlock("F");
+    builder.createBr(" ", "B", "H");
 
-//     builder.createBasicBlock("G");
-//     builder.createBr(" ", "C", "I");
+    builder.createBasicBlock("G");
+    builder.createBr(" ", "C", "I");
 
-//     builder.createBasicBlock("H");
-//     builder.createBr(" ", "G", "I");
+    builder.createBasicBlock("H");
+    builder.createBr(" ", "G", "I");
 
-//     builder.createBasicBlock("I");
-//     builder.createRet(" ");
+    builder.createBasicBlock("I");
+    builder.createRet(" ");
 
-//     builder.dump();
+    builder.dump();
 
-//     builder.printDominators();
+    builder.printDominators();
 
-//     builder.analyzeLoops();
+    builder.analyzeLoops();
 
-//     return 0;
-// }
+    return 0;
+}
 
 //---------------------------- special for loop test ----------------------------------------
 

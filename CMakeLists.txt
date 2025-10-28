@@ -29,7 +29,8 @@ enable_testing()
 
 find_package(GTest REQUIRED)
 
-add_executable(test_dominators tests/test_dominators_set.cc)
+add_executable(test_dominators tests/test_dominators_set.cc tests/test_loop.cc tests/loop.cc)
+target_include_directories(test_dominators PRIVATE tests)
 
 target_link_libraries(test_dominators PRIVATE ir_lib GTest::gtest GTest::gtest_main)
 
@@ -37,3 +38,5 @@ add_test(NAME GeneralTest COMMAND test_dominators)
 add_test(NAME Test1 COMMAND test_dominators)
 add_test(NAME Test2 COMMAND test_dominators)
 add_test(NAME Test3 COMMAND test_dominators)
+
+add_test(NAME LoopAnalysis COMMAND test_dominators)

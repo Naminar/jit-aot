@@ -2,7 +2,8 @@
 #include <sstream>
 #include <iostream>
 
-#include "irbuilder.hh"
+#include "loop.hh"
+// #include "irbuilder.hh"
 
 bool compareSets(const std::unordered_set<std::string>& a,
                  const std::unordered_set<std::string>& b) {
@@ -75,6 +76,15 @@ TEST(Test1, Test1) {
 
     auto dominators = builder.printDominators();
 
+    builder.analyzeLoops();
+
+    auto actualLoops = builder.loopList;
+    
+    std::vector<ExpectedLoopInfo> expectedLoops = {
+    };
+    
+    verifyLoops(actualLoops, expectedLoops);
+
     std::unordered_map<std::string, std::unordered_set<std::string>> expected = {
         {"entry", {"entry", "B", "C", "D", "F", "E", "G"}},
         {"B", {"B", "C", "D", "F", "E", "G"}},
@@ -127,6 +137,18 @@ TEST(Test2, Test2) {
 
     builder.createBasicBlock("K");
     builder.createRet(" ");
+
+    builder.analyzeLoops();
+
+    auto actualLoops = builder.loopList;
+    
+    std::vector<ExpectedLoopInfo> expectedLoops = {
+    {"E", {"F"}, {"F", "E"}}, 
+    {"C", {"D"}, {"D", "C"}}, 
+    {"B", {"H"}, {"J", "H", "G", "B"}}
+    };
+    
+    verifyLoops(actualLoops, expectedLoops);
 
     auto dominators = builder.printDominators();
     std::unordered_map<std::string, std::unordered_set<std::string>> expected = {
@@ -181,6 +203,15 @@ TEST(Test3, Test3) {
     builder.createRet(" ");
 
     auto dominators = builder.printDominators();
+
+    builder.analyzeLoops();
+
+    auto actualLoops = builder.loopList;
+    
+    std::vector<ExpectedLoopInfo> expectedLoops = {
+    {"G", {"D"}, {"D", "G"}}, 
+    {"B", {"F"}, {"E", "F", "B"}}
+    };
 
     std::unordered_map<std::string, std::unordered_set<std::string>> expected = {
         {"entry", {"entry", "H", "B", "G", "E", "F", "C", "D", "I"}},

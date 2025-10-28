@@ -60,6 +60,8 @@
 
 //     builder.printDominators();
 
+//     builder.analyzeLoops();
+
 //     return 0;
 // }
 
@@ -103,42 +105,140 @@
 
 //     builder.printDominators();
 
+//     builder.analyzeLoops();
+
 //     return 0;
 // }
 
 
-int main() {
-    IRBuilder builder;
-    builder.createBasicBlock("entry");
-    builder.createBr("B");
+// int main() {
+//     IRBuilder builder;
+//     builder.createBasicBlock("entry");
+//     builder.createBr("B");
 
-    builder.createBasicBlock("B");
-    builder.createBr(" ", "E", "C");
+//     builder.createBasicBlock("B");
+//     builder.createBr(" ", "E", "C");
 
-    builder.createBasicBlock("C");
-    builder.createBr("D");
+//     builder.createBasicBlock("C");
+//     builder.createBr("D");
 
-    builder.createBasicBlock("D");
-    builder.createBr("G");
+//     builder.createBasicBlock("D");
+//     builder.createBr("G");
 
-    builder.createBasicBlock("E");
-    builder.createBr(" ", "F", "D");
+//     builder.createBasicBlock("E");
+//     builder.createBr(" ", "F", "D");
 
-    builder.createBasicBlock("F");
-    builder.createBr(" ", "B", "H");
+//     builder.createBasicBlock("F");
+//     builder.createBr(" ", "B", "H");
 
-    builder.createBasicBlock("G");
-    builder.createBr(" ", "C", "I");
+//     builder.createBasicBlock("G");
+//     builder.createBr(" ", "C", "I");
 
-    builder.createBasicBlock("H");
-    builder.createBr(" ", "G", "I");
+//     builder.createBasicBlock("H");
+//     builder.createBr(" ", "G", "I");
 
-    builder.createBasicBlock("I");
-    builder.createRet(" ");
+//     builder.createBasicBlock("I");
+//     builder.createRet(" ");
 
-    builder.dump();
+//     builder.dump();
 
-    builder.printDominators();
+//     builder.printDominators();
 
-    return 0;
-}
+//     builder.analyzeLoops();
+
+//     return 0;
+// }
+
+//---------------------------- special for loop test ----------------------------------------
+
+// int main () {
+//     IRBuilder builder;
+//     builder.createBasicBlock("entry");
+//     builder.createBr("B");
+
+//     builder.createBasicBlock("B");
+//     builder.createBr(" ", "C", "D");
+
+//     builder.createBasicBlock("C");
+//     builder.createRet(" ");
+
+//     builder.createBasicBlock("D");
+//     builder.createBr("E");
+
+//     builder.createBasicBlock("E");
+//     builder.createBr("B");
+
+//     builder.dump();
+
+//     builder.printDominators();
+
+//     builder.analyzeLoops();
+
+//     return 0;
+// }
+
+
+// int main () {
+//     IRBuilder builder;
+//     builder.createBasicBlock("entry");
+//     builder.createBr("B");
+
+//     builder.createBasicBlock("B");
+//     builder.createBr("C");
+
+//     builder.createBasicBlock("C");
+//     builder.createBr(" ", "D", "E");
+
+//     builder.createBasicBlock("D");
+//     builder.createRet(" ");
+
+//     builder.createBasicBlock("E");
+//     builder.createBr(" ", "D", "F");
+
+//     builder.createBasicBlock("F");
+//     builder.createBr("B");
+
+//     builder.dump();
+
+//     builder.printDominators();
+
+//     builder.analyzeLoops();
+
+//     return 0;
+// }
+
+// int main () {
+//     IRBuilder builder;
+//     builder.createBasicBlock("entry");
+//     builder.createBr("B");
+
+//     builder.createBasicBlock("B");
+//     builder.createBr(" ", "C", "G");
+
+//     builder.createBasicBlock("G");
+//     builder.createBr(" ", "D", "I");
+
+//     builder.createBasicBlock("I");
+//     builder.createRet(" ");
+
+//     builder.createBasicBlock("C");
+//     builder.createBr("D");
+
+//     builder.createBasicBlock("D");
+//     builder.createBr("E");
+
+//     builder.createBasicBlock("E");
+//     builder.createBr(" ", "B", "F");
+
+//     builder.createBasicBlock("F");
+//     builder.createBr("entry");
+
+//     builder.dump();
+
+//     builder.printDominators();
+
+//     builder.analyzeLoops();
+
+//     return 0;
+// }
+

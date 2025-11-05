@@ -6,7 +6,8 @@
 
 void IRBuilder::ensureNoTerminator() {
     if (currentBlock && currentBlock->hasTerminator()) {
-        throw std::runtime_error("Impossible to insert instruction after terminator in block '" + currentBlock->name + "'");
+        throw std::runtime_error("Impossible to insert instruction after terminator in block '" 
+                                    + currentBlock->name + "'");
     }
 }
 
@@ -170,10 +171,13 @@ void IRBuilder::buildCFG() {
         bb->successors.clear();
         bb->predecessors.clear();
     }
+    
     for (auto& bb : blocks) {
-        if (!bb->hasTerminator()) continue;
+        if (!bb->hasTerminator()) 
+            continue;
         auto term = bb->instructions.back().get();
         auto labels = term->getSuccessorLabels();
+
         for (const auto& label : labels) {
             auto it = blockMap.find(label);
             if (it == blockMap.end()) {
@@ -190,8 +194,10 @@ void IRBuilder::buildCFG() {
 void IRBuilder::dfsVisit(BasicBlock* node,
               std::unordered_set<BasicBlock*>& visited,
               BasicBlock* skip) {
-    if (!node || node == skip || visited.count(node)) return;
+    if (!node || node == skip || visited.count(node)) 
+        return;
     visited.insert(node);
+
     for (auto* succ : node->successors)
         dfsVisit(succ, visited, skip);
 }
@@ -260,7 +266,8 @@ IRBuilder::printDominators() {
 
 void IRBuilder::computeRPO(std::vector<BasicBlock*>& outRPO) {
     outRPO.clear();
-    if (blocks.empty()) return;
+    if (blocks.empty()) 
+        return;
     BasicBlock* entry = blocks.front().get();
     std::unordered_set<BasicBlock*> vis;
     std::vector<BasicBlock*> postorder;
@@ -289,16 +296,20 @@ void IRBuilder::collectBackEdges(
     backEdgesByHeader.clear();
     isIrreducibleFlag.clear();
 
-    if (blocks.empty()) return;
+    if (blocks.empty()) 
+        return;
     BasicBlock* entry = blocks.front().get();
 
     enum Color { White=0, Gray=1, Black=2 };
+
     std::unordered_map<BasicBlock*, Color> color;
     for (auto& bbPtr : blocks) color[bbPtr.get()] = White;
 
     std::function<void(BasicBlock*)> dfs = [&](BasicBlock* n) {
-        if (!n) return;
+        if (!n) 
+            return;
         color[n] = Gray;
+    
         for (auto* s : n->successors) {
             if (color[s] == White) {
                 dfs(s);
@@ -312,7 +323,8 @@ void IRBuilder::collectBackEdges(
                 } else {
                     headerDominatesSource = false;
                 }
-                if (!headerDominatesSource) isIrreducibleFlag[s] = true;
+                if (!headerDominatesSource)
+                    isIrreducibleFlag[s] = true;
             } else {
             }
         }
@@ -346,7 +358,8 @@ void IRBuilder::analyzeLoops() {
 
     for (auto* hdr : loopList) {
         hdr->backEdges = backEdgesByHeader[hdr->header];
-        hdr->irreducible = (isIrreducibleFlag.count(hdr->header) && isIrreducibleFlag[hdr->header]);
+        hdr->irreducible = (isIrreducibleFlag.count(hdr->header) 
+                            && isIrreducibleFlag[hdr->header]);
 
         hdr->blocks.insert(hdr->header);
         hdr->header->parentLoop = hdr;
@@ -360,14 +373,15 @@ void IRBuilder::analyzeLoops() {
             return;
 
             if (B->parentLoop != nullptr && B->parentLoop != L) {
-            L->addInnerLoop(B->parentLoop);
-            return;
-        }
+                L->addInnerLoop(B->parentLoop);
+                return;
+            }
         L->addBlock(B);
     };
 
     std::unordered_map<BasicBlock*, int> rpoIndex;
-    for (size_t i = 0; i < rpo.size(); ++i) rpoIndex[rpo[i]] = (int)i;
+    for (size_t i = 0; i < rpo.size(); ++i) 
+        rpoIndex[rpo[i]] = (int)i;
 
     std::sort(loopList.begin(), loopList.end(), [&](Loop* a, Loop* b) {
         int ia = rpoIndex.count(a->header) ? rpoIndex[a->header] : -1;
@@ -386,6 +400,7 @@ void IRBuilder::analyzeLoops() {
 
             while(!fwd_stack.empty()) {
                 BasicBlock* current = fwd_stack.top(); fwd_stack.pop();
+                
                 for (auto* succ : current->successors) {
                     if (reachable_forward.find(succ) == reachable_forward.end()) {
                         reachable_forward.insert(succ);
@@ -401,7 +416,9 @@ void IRBuilder::analyzeLoops() {
             reachable_backward.insert(header);
 
             while(!bwd_stack.empty()) {
-                BasicBlock* current = bwd_stack.top(); bwd_stack.pop();
+                BasicBlock* current = bwd_stack.top(); 
+                bwd_stack.pop();
+                
                 for (auto* pred : current->predecessors) {
                     if (reachable_backward.find(pred) == reachable_backward.end()) {
                         reachable_backward.insert(pred);
@@ -425,8 +442,12 @@ void IRBuilder::analyzeLoops() {
                 if (!visited.count(src)) {
                     st.push(src);
                     while (!st.empty()) {
-                        BasicBlock* cur = st.top(); st.pop();
-                        if (visited.count(cur)) continue;
+                        BasicBlock* cur = st.top(); 
+                        st.pop();
+                        
+                        if (visited.count(cur)) 
+                            continue;
+                        
                         visited.insert(cur);
 
                         if (cur->parentLoop == nullptr) {

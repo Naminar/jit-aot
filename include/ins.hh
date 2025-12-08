@@ -10,7 +10,6 @@
 
 class Instruction;
 
-
 struct Operand {
     enum Type { Int, Inst, Undef } type;
     int intVal;
@@ -20,6 +19,13 @@ struct Operand {
     Operand(Instruction* i) : type(Inst), intVal(0), instVal(i) {}
     Operand() : type(Undef), intVal(0), instVal(nullptr) {}
 
+    bool operator==(const Operand& other) const {
+        if (type != other.type) return false;
+        if (type == Int) return intVal == other.intVal;
+        if (type == Inst) return instVal == other.instVal;
+        return true;
+    }
+
     std::string toString() const;
 };
 
@@ -27,7 +33,9 @@ class Instruction {
 public:
     enum class Type { Regular, Terminator, Phi };
     std::string name;
+    bool erased = false;
 
+    // Dataflow
     std::vector<Instruction*> operands;
     std::vector<Instruction*> users;
 
@@ -45,6 +53,30 @@ public:
             inst->users.push_back(this);
         }
     }
+
+    void dropOperands() {
+        for (Instruction* op : operands) {
+            auto it = std::find(op->users.begin(), op->users.end(), this);
+            if (it != op->users.end()) {
+                op->users.erase(it);
+            }
+        }
+        operands.clear();
+    }
+
+    virtual void replaceOperand(Instruction* oldOp, Operand newOp) {
+        auto it = std::find(operands.begin(), operands.end(), oldOp);
+        
+        if (it != operands.end()) {
+            if (newOp.type == Operand::Inst) {
+                *it = newOp.instVal;
+
+                newOp.instVal->users.push_back(this);
+            } else {
+                operands.erase(it);
+            }
+        }
+    }
 };
 
 inline std::string Operand::toString() const {
@@ -55,18 +87,30 @@ inline std::string Operand::toString() const {
 
 class BinaryInst : public Instruction {
 public:
-    enum Op { Add, Sub, Mul };
+    enum Op { Add, Sub, Mul, And, AShr };
     Op op;
     Operand lhs, rhs;
 
     BinaryInst(Op o, Operand a, Operand b) : op(o), lhs(a), rhs(b) {
-
         if (a.type == Operand::Inst) addOperand(a.instVal);
         if (b.type == Operand::Inst) addOperand(b.instVal);
     }
 
+    void replaceOperand(Instruction* oldOp, Operand newOp) override {
+        Instruction::replaceOperand(oldOp, newOp);
+        if (lhs.type == Operand::Inst && lhs.instVal == oldOp) lhs = newOp;
+        if (rhs.type == Operand::Inst && rhs.instVal == oldOp) rhs = newOp;
+    }
+
     void print() const override {
-        const char* opStr = (op == Add) ? "add" : (op == Sub) ? "sub" : "mul";
+        const char* opStr = "";
+        switch(op) {
+            case Add: opStr = "add"; break;
+            case Sub: opStr = "sub"; break;
+            case Mul: opStr = "mul"; break;
+            case And: opStr = "and"; break;
+            case AShr: opStr = "ashr"; break;
+        }
         std::cout << "  " << name << " = " << opStr << " " << lhs.toString() << ", " << rhs.toString() << "\n";
     }
 };
@@ -80,6 +124,12 @@ public:
     ICmpInst(Pred p, Operand a, Operand b) : pred(p), lhs(a), rhs(b) {
         if (a.type == Operand::Inst) addOperand(a.instVal);
         if (b.type == Operand::Inst) addOperand(b.instVal);
+    }
+
+    void replaceOperand(Instruction* oldOp, Operand newOp) override {
+        Instruction::replaceOperand(oldOp, newOp);
+        if (lhs.type == Operand::Inst && lhs.instVal == oldOp) lhs = newOp;
+        if (rhs.type == Operand::Inst && rhs.instVal == oldOp) rhs = newOp;
     }
 
     void print() const override {
@@ -99,18 +149,21 @@ public:
 class AllocaInst : public Instruction {
 public:
     AllocaInst() {}
-    
     void print() const override {
         std::cout << "  " << name << " = alloca\n";
     }
 };
 
 class LoadInst : public Instruction {
-    Operand ptr;
-
 public:    
+    Operand ptr; 
     LoadInst(Operand p) : ptr(p) {
         if (p.type == Operand::Inst) addOperand(p.instVal);
+    }
+
+    void replaceOperand(Instruction* oldOp, Operand newOp) override {
+        Instruction::replaceOperand(oldOp, newOp);
+        if (ptr.type == Operand::Inst && ptr.instVal == oldOp) ptr = newOp;
     }
 
     void print() const override {
@@ -127,31 +180,50 @@ public:
         if (p.type == Operand::Inst) addOperand(p.instVal);
     }
     
+    void replaceOperand(Instruction* oldOp, Operand newOp) override {
+        Instruction::replaceOperand(oldOp, newOp);
+        if (val.type == Operand::Inst && val.instVal == oldOp) val = newOp;
+        if (ptr.type == Operand::Inst && ptr.instVal == oldOp) ptr = newOp;
+    }
+
     void print() const override {
         std::cout << "  store " << val.toString() << ", " << ptr.toString() << "\n";
     }
 };
 
 class TerminatorInst : public Instruction {
-    std::string repr;
+public:
+    enum TermType { Ret, Br, BrCond };
+    TermType type;
+    Operand val;
     std::vector<std::string> succLabels;
 
-public:
-    // Regular terminator (ret void, unconditional br)
-    TerminatorInst(const std::string& r, const std::vector<std::string> labels)
-        : repr(r), succLabels(std::move(labels)) {}
+    TerminatorInst(TermType t, Operand v, std::vector<std::string> lbls) 
+        : type(t), val(v), succLabels(std::move(lbls)) {
+        if (val.type == Operand::Inst) addOperand(val.instVal);
+    }
 
-    // Terminator with dependency (ret val, conditional br)
-    TerminatorInst(const std::string& r, const std::vector<std::string> labels, Operand op)
-        : repr(r), succLabels(std::move(labels)) {
-        if (op.type == Operand::Inst) addOperand(op.instVal);
+    void replaceOperand(Instruction* oldOp, Operand newOp) override {
+        Instruction::replaceOperand(oldOp, newOp);
+        if (val.type == Operand::Inst && val.instVal == oldOp) val = newOp;
     }
 
     Type getInstType() const override { return Type::Terminator; }
 
     std::vector<std::string> getSuccessorLabels() const override { return succLabels; }
     
-    void print() const override { std::cout << "  " << repr << "  ; <terminator>\n"; }
+    void print() const override {
+        std::cout << "  ";
+        if (type == Ret) {
+            if (val.type == Operand::Undef) std::cout << "ret void";
+            else std::cout << "ret i32 " << val.toString();
+        } else if (type == Br) {
+             std::cout << "br label %" << succLabels[0];
+        } else if (type == BrCond) {
+             std::cout << "br " << val.toString() << ", label %" << succLabels[0] << ", label %" << succLabels[1];
+        }
+        std::cout << "\n";
+    }
 };
 
 class PhiInst : public Instruction {
@@ -165,6 +237,15 @@ public:
     void addIncoming(Operand val, const std::string& block) {
         incomings.push_back({val, block});
         if (val.type == Operand::Inst) addOperand(val.instVal);
+    }
+
+    void replaceOperand(Instruction* oldOp, Operand newOp) override {
+        Instruction::replaceOperand(oldOp, newOp);
+        for (auto& inc : incomings) {
+            if (inc.val.type == Operand::Inst && inc.val.instVal == oldOp) {
+                inc.val = newOp;
+            }
+        }
     }
 
     Type getInstType() const override { return Type::Phi; }

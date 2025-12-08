@@ -111,6 +111,11 @@ private:
         return "%v" + std::to_string(nextValueID++);
     }
 
+    // Optimization helpers
+    void replaceInstruction(Instruction* oldInst, Operand newVal);
+    Operand foldInstruction(Instruction* inst);
+    Operand peepholeInstruction(Instruction* inst);
+
 public:
     std::vector<Loop*> loopList;
     std::vector<std::unique_ptr<Loop>> allLoops;
@@ -121,13 +126,15 @@ public:
         currentBlock = bb;
     }
 
-    // void createInstruction(const std::string& code);
-
     Instruction* createAdd(Operand lhs, Operand rhs);
 
     Instruction* createSub(Operand lhs, Operand rhs);
 
     Instruction* createMul(Operand lhs, Operand rhs);
+
+    Instruction* createAnd(Operand lhs, Operand rhs);
+
+    Instruction* createAShr(Operand lhs, Operand rhs);
 
     Instruction* createICmp(ICmpInst::Pred pred, Operand lhs, Operand rhs);
 
@@ -153,8 +160,6 @@ public:
               std::unordered_set<BasicBlock*>& visited,
               BasicBlock* skip = nullptr);
     
-    // std::unordered_map<std::string, std::unordered_set<std::string>> printDominators();
-
     void dump() const {
         for (const auto& bb : blocks) {
             bb->print();
@@ -172,4 +177,6 @@ public:
     
     std::unordered_map<std::string, std::unordered_set<std::string>> 
     printDominators();
+
+    void globalOptimization();
 };

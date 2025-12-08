@@ -29,7 +29,7 @@ enable_testing()
 
 find_package(GTest REQUIRED)
 
-add_executable(test_dominators tests/test_dominators_set.cc tests/test_loop.cc tests/loop.cc)
+add_executable(test_dominators tests/test_dominators_set.cc tests/test_loop.cc tests/loop.cc tests/test_opt.cc)
 # add_executable(test_dominators tests/test_dominators_set.cc tests/loop.cc)
 target_include_directories(test_dominators PRIVATE tests)
 
@@ -41,3 +41,4 @@ add_test(NAME Test2 COMMAND test_dominators)
 add_test(NAME Test3 COMMAND test_dominators)
 
 add_test(NAME LoopAnalysis COMMAND test_dominators)
+add_test(NAME OptimizationTest COMMAND test_dominators)

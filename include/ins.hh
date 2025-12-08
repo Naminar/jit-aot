@@ -4,11 +4,32 @@
 #include <memory>
 #include <algorithm>
 #include <stdexcept>
+#include <unordered_set>
+#include <unordered_map>
+#include <stack>
+
+class Instruction;
+
+
+struct Operand {
+    enum Type { Int, Inst, Undef } type;
+    int intVal;
+    Instruction* instVal;
+
+    Operand(int v) : type(Int), intVal(v), instVal(nullptr) {}
+    Operand(Instruction* i) : type(Inst), intVal(0), instVal(i) {}
+    Operand() : type(Undef), intVal(0), instVal(nullptr) {}
+
+    std::string toString() const;
+};
 
 class Instruction {
 public:
     enum class Type { Regular, Terminator, Phi };
     std::string name;
+
+    std::vector<Instruction*> operands;
+    std::vector<Instruction*> users;
 
     virtual ~Instruction() = default;
     
@@ -17,19 +38,36 @@ public:
     virtual void print() const = 0;
     
     virtual std::vector<std::string> getSuccessorLabels() const { return {}; }
+
+    void addOperand(Instruction* inst) {
+        if (inst) {
+            operands.push_back(inst);
+            inst->users.push_back(this);
+        }
+    }
 };
+
+inline std::string Operand::toString() const {
+    if (type == Int) return std::to_string(intVal);
+    if (type == Inst && instVal) return instVal->name;
+    return "undef";
+}
 
 class BinaryInst : public Instruction {
 public:
     enum Op { Add, Sub, Mul };
     Op op;
-    std::string lhs, rhs;
+    Operand lhs, rhs;
 
-    BinaryInst(Op o, const std::string& a, const std::string& b) : op(o), lhs(a), rhs(b) {}
+    BinaryInst(Op o, Operand a, Operand b) : op(o), lhs(a), rhs(b) {
+
+        if (a.type == Operand::Inst) addOperand(a.instVal);
+        if (b.type == Operand::Inst) addOperand(b.instVal);
+    }
 
     void print() const override {
         const char* opStr = (op == Add) ? "add" : (op == Sub) ? "sub" : "mul";
-        std::cout << "  " << name << " = " << opStr << " " << lhs << ", " << rhs << "\n";
+        std::cout << "  " << name << " = " << opStr << " " << lhs.toString() << ", " << rhs.toString() << "\n";
     }
 };
 
@@ -37,9 +75,12 @@ class ICmpInst : public Instruction {
 public:
     enum Pred { EQ, NE, SGT, SLT, SGE, SLE };
     Pred pred;
-    std::string lhs, rhs;
+    Operand lhs, rhs;
     
-    ICmpInst(Pred p, const std::string& a, const std::string& b) : pred(p), lhs(a), rhs(b) {}
+    ICmpInst(Pred p, Operand a, Operand b) : pred(p), lhs(a), rhs(b) {
+        if (a.type == Operand::Inst) addOperand(a.instVal);
+        if (b.type == Operand::Inst) addOperand(b.instVal);
+    }
 
     void print() const override {
         const char* predStr = "";
@@ -51,7 +92,7 @@ public:
             case SGE: predStr = "sge"; break;
             case SLE: predStr = "sle"; break;
         }
-        std::cout << "  " << name << " = icmp " << predStr << " " << lhs << ", " << rhs << "\n";
+        std::cout << "  " << name << " = icmp " << predStr << " " << lhs.toString() << ", " << rhs.toString() << "\n";
     }
 };
 
@@ -65,24 +106,29 @@ public:
 };
 
 class LoadInst : public Instruction {
-    std::string ptr;
+    Operand ptr;
 
 public:    
-    LoadInst(const std::string& p) : ptr(p) {}
+    LoadInst(Operand p) : ptr(p) {
+        if (p.type == Operand::Inst) addOperand(p.instVal);
+    }
 
     void print() const override {
-        std::cout << "  " << name << " = load " << ptr << "\n";
+        std::cout << "  " << name << " = load " << ptr.toString() << "\n";
     }
 };
 
 class StoreInst : public Instruction {
 public:
-    std::string val, ptr;
+    Operand val, ptr;
     
-    StoreInst(const std::string& v, const std::string& p) : val(v), ptr(p) {}
+    StoreInst(Operand v, Operand p) : val(v), ptr(p) {
+        if (v.type == Operand::Inst) addOperand(v.instVal);
+        if (p.type == Operand::Inst) addOperand(p.instVal);
+    }
     
     void print() const override {
-        std::cout << "  store " << val << ", " << ptr << "\n";
+        std::cout << "  store " << val.toString() << ", " << ptr.toString() << "\n";
     }
 };
 
@@ -91,8 +137,15 @@ class TerminatorInst : public Instruction {
     std::vector<std::string> succLabels;
 
 public:
+    // Regular terminator (ret void, unconditional br)
     TerminatorInst(const std::string& r, const std::vector<std::string> labels)
         : repr(r), succLabels(std::move(labels)) {}
+
+    // Terminator with dependency (ret val, conditional br)
+    TerminatorInst(const std::string& r, const std::vector<std::string> labels, Operand op)
+        : repr(r), succLabels(std::move(labels)) {
+        if (op.type == Operand::Inst) addOperand(op.instVal);
+    }
 
     Type getInstType() const override { return Type::Terminator; }
 
@@ -104,13 +157,14 @@ public:
 class PhiInst : public Instruction {
 public:
     struct Incoming {
-        std::string value;
+        Operand val;
         std::string blockName;
     };
     std::vector<Incoming> incomings;
 
-    void addIncoming(const std::string& val, const std::string& block) {
+    void addIncoming(Operand val, const std::string& block) {
         incomings.push_back({val, block});
+        if (val.type == Operand::Inst) addOperand(val.instVal);
     }
 
     Type getInstType() const override { return Type::Phi; }
@@ -119,9 +173,9 @@ public:
         std::cout << "  " << name << " = phi";
         for (size_t i = 0; i < incomings.size(); ++i) {
             if (i == 0) 
-                std::cout << " [ " << incomings[i].value << ", %" << incomings[i].blockName << " ]";
+                std::cout << " [ " << incomings[i].val.toString() << ", %" << incomings[i].blockName << " ]";
             else
-                std::cout << ", [ " << incomings[i].value << ", %" << incomings[i].blockName << " ]";
+                std::cout << ", [ " << incomings[i].val.toString() << ", %" << incomings[i].blockName << " ]";
         }
         std::cout << "\n";
     }

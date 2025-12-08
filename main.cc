@@ -117,7 +117,7 @@ int main() {
     builder.createBr("B");
 
     builder.createBasicBlock("B");
-    builder.createBr(" ", "E", "C");
+    builder.createBr(1, "E", "C");
 
     builder.createBasicBlock("C");
     builder.createBr("D");
@@ -126,19 +126,19 @@ int main() {
     builder.createBr("G");
 
     builder.createBasicBlock("E");
-    builder.createBr(" ", "F", "D");
+    builder.createBr(1, "F", "D");
 
     builder.createBasicBlock("F");
-    builder.createBr(" ", "B", "H");
+    builder.createBr(1, "B", "H");
 
     builder.createBasicBlock("G");
-    builder.createBr(" ", "C", "I");
+    builder.createBr(1, "C", "I");
 
     builder.createBasicBlock("H");
-    builder.createBr(" ", "G", "I");
+    builder.createBr(1, "G", "I");
 
     builder.createBasicBlock("I");
-    builder.createRet(" ");
+    builder.createRet();
 
     builder.dump();
 

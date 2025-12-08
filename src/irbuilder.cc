@@ -27,108 +27,102 @@ BasicBlock* IRBuilder::createBasicBlock(const std::string& name) {
 }
 
 
-std::string IRBuilder::createAdd(const std::string& lhs, const std::string& rhs) {
+Instruction* IRBuilder::createAdd(Operand lhs, Operand rhs) {
     ensureNoTerminator();
 
     auto inst = std::make_unique<BinaryInst>(BinaryInst::Add, lhs, rhs);
 
     inst->name = getNewName();
-    std::string name = inst->name;
+    Instruction* ptr = inst.get();
 
     currentBlock->instructions.push_back(std::move(inst));
 
-    return name;
+    return ptr;
 }
 
 
-std::string IRBuilder::createSub(const std::string& lhs, const std::string& rhs) {
+Instruction* IRBuilder::createSub(Operand lhs, Operand rhs) {
     ensureNoTerminator();
 
     auto inst = std::make_unique<BinaryInst>(BinaryInst::Sub, lhs, rhs);
 
     inst->name = getNewName();
-    std::string name = inst->name;
+    Instruction* ptr = inst.get();
 
     currentBlock->instructions.push_back(std::move(inst));
 
-    return name;
+    return ptr;
 }
 
 
-std::string IRBuilder::createMul(const std::string& lhs, const std::string& rhs) {
+Instruction* IRBuilder::createMul(Operand lhs, Operand rhs) {
     ensureNoTerminator();
 
     auto inst = std::make_unique<BinaryInst>(BinaryInst::Mul, lhs, rhs);
 
     inst->name = getNewName();
-    std::string name = inst->name;
+    Instruction* ptr = inst.get();
 
     currentBlock->instructions.push_back(std::move(inst));
 
-    return name;
+    return ptr;
 }
 
 
-std::string IRBuilder::createICmp(ICmpInst::Pred pred, const std::string& lhs, const std::string& rhs) {
+Instruction* IRBuilder::createICmp(ICmpInst::Pred pred, Operand lhs, Operand rhs) {
     ensureNoTerminator();
 
     auto inst = std::make_unique<ICmpInst>(pred, lhs, rhs);
 
     inst->name = getNewName();
-    std::string name = inst->name;
+    Instruction* ptr = inst.get();
 
     currentBlock->instructions.push_back(std::move(inst));
 
-    return name;
+    return ptr;
 }
 
 
-std::string IRBuilder::createAlloca() {
+Instruction* IRBuilder::createAlloca() {
     ensureNoTerminator();
 
     auto inst = std::make_unique<AllocaInst>();
 
     inst->name = getNewName();
-    std::string name = inst->name;
+    Instruction* ptr = inst.get();
 
     currentBlock->instructions.push_back(std::move(inst));
 
-    return name;
+    return ptr;
 }
 
 
-std::string IRBuilder::createLoad(const std::string& ptr) {
+Instruction* IRBuilder::createLoad(Operand ptr) {
     ensureNoTerminator();
 
     auto inst = std::make_unique<LoadInst>(ptr);
 
     inst->name = getNewName();
-    std::string name = inst->name;
+    Instruction* ptr_ = inst.get();
 
     currentBlock->instructions.push_back(std::move(inst));
 
-    return name;
+    return ptr_;
 }
 
 
-void IRBuilder::createStore(const std::string& val, const std::string& ptr) {
+void IRBuilder::createStore(Operand val, Operand ptr) {
     ensureNoTerminator();
     currentBlock->instructions.push_back(std::make_unique<StoreInst>(val, ptr));
 }
 
-// void IRBuilder::createInstruction(const std::string& code) {
-//     if (!currentBlock) throw std::runtime_error("No current block!");
-//     ensureNoTerminator();
-//     currentBlock->instructions.push_back(std::make_unique<RegularInst>(code));
-// }
 
-
-void IRBuilder::createBr(const std::string& condLabel, const std::string& thenLabel, const std::string& elseLabel) {
+void IRBuilder::createBr(Operand cond, const std::string& thenLabel, const std::string& elseLabel) {
     std::vector<std::string> labels = {thenLabel, elseLabel};
 
-    std::string code = "br" + condLabel + ", label %" + thenLabel + ", label %" + elseLabel;
+    std::string code = "br " + cond.toString() + ", label %" + thenLabel + ", label %" + elseLabel;
 
-    currentBlock->instructions.push_back(std::make_unique<TerminatorInst>(code, labels));
+    currentBlock->instructions.push_back(std::make_unique<TerminatorInst>(code, labels, cond));
 }
 
 
@@ -141,12 +135,19 @@ void IRBuilder::createBr(const std::string& targetLabel) {
 }
 
 
-void IRBuilder::createRet(const std::string& val) {
-    std::string code = val.empty() ? "ret void" : ("ret i32 " + val);
+void IRBuilder::createRet(Operand val) {
+    std::string code;
+    if (val.type == Operand::Undef) {
+        code = "ret void";
+        currentBlock->instructions.push_back(std::make_unique<TerminatorInst>(code, std::vector<std::string>{}));
+    } else {
+        code = "ret i32 " + val.toString();
+        currentBlock->instructions.push_back(std::make_unique<TerminatorInst>(code, std::vector<std::string>{}, val));
+    }
+}
 
-    std::vector<std::string> label = {};
-
-    currentBlock->instructions.push_back(std::make_unique<TerminatorInst>(code, label));
+void IRBuilder::createRet() {
+    createRet(Operand());
 }
 
 

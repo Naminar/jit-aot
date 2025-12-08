@@ -30,6 +30,7 @@ enable_testing()
 find_package(GTest REQUIRED)
 
 add_executable(test_dominators tests/test_dominators_set.cc tests/test_loop.cc tests/loop.cc)
+# add_executable(test_dominators tests/test_dominators_set.cc tests/loop.cc)
 target_include_directories(test_dominators PRIVATE tests)
 
 target_link_libraries(test_dominators PRIVATE ir_lib GTest::gtest GTest::gtest_main)

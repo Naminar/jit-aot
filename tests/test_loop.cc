@@ -6,10 +6,10 @@ TEST(LoopAnalysis, Loop1) {
     builder.createBr("B");
 
     builder.createBasicBlock("B");
-    builder.createBr(" ", "C", "D");
+    builder.createBr(1, "C", "D");
 
     builder.createBasicBlock("C");
-    builder.createRet(" ");
+    builder.createRet();
 
     builder.createBasicBlock("D");
     builder.createBr("E");
@@ -41,13 +41,13 @@ TEST(LoopAnalysis, Loop2) {
     builder.createBr("C");
 
     builder.createBasicBlock("C");
-    builder.createBr(" ", "D", "E");
+    builder.createBr(1, "D", "E");
 
     builder.createBasicBlock("D");
-    builder.createRet(" ");
+    builder.createRet();
 
     builder.createBasicBlock("E");
-    builder.createBr(" ", "D", "F");
+    builder.createBr(1, "D", "F");
 
     builder.createBasicBlock("F");
     builder.createBr("B");
@@ -73,13 +73,13 @@ TEST(LoopAnalysis, Loop3) {
     builder.createBr("B");
 
     builder.createBasicBlock("B");
-    builder.createBr(" ", "C", "G");
+    builder.createBr(1, "C", "G");
 
     builder.createBasicBlock("G");
-    builder.createBr(" ", "D", "I");
+    builder.createBr(1, "D", "I");
 
     builder.createBasicBlock("I");
-    builder.createRet(" ");
+    builder.createRet();
 
     builder.createBasicBlock("C");
     builder.createBr("D");
@@ -88,7 +88,7 @@ TEST(LoopAnalysis, Loop3) {
     builder.createBr("E");
 
     builder.createBasicBlock("E");
-    builder.createBr(" ", "B", "F");
+    builder.createBr(1, "B", "F");
 
     builder.createBasicBlock("F");
     builder.createBr("entry");

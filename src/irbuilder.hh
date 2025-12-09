@@ -111,6 +111,11 @@ private:
         return "%v" + std::to_string(nextValueID++);
     }
 
+    // Optimization helpers
+    void replaceInstruction(Instruction* oldInst, Operand newVal);
+    Operand foldInstruction(Instruction* inst);
+    Operand peepholeInstruction(Instruction* inst);
+
 public:
     std::vector<Loop*> loopList;
     std::vector<std::unique_ptr<Loop>> allLoops;
@@ -121,27 +126,31 @@ public:
         currentBlock = bb;
     }
 
-    // void createInstruction(const std::string& code);
+    Instruction* createAdd(Operand lhs, Operand rhs);
 
-    std::string createAdd(const std::string& lhs, const std::string& rhs);
+    Instruction* createSub(Operand lhs, Operand rhs);
 
-    std::string createSub(const std::string& lhs, const std::string& rhs);
+    Instruction* createMul(Operand lhs, Operand rhs);
 
-    std::string createMul(const std::string& lhs, const std::string& rhs);
+    Instruction* createAnd(Operand lhs, Operand rhs);
 
-    std::string createICmp(ICmpInst::Pred pred, const std::string& lhs, const std::string& rhs);
+    Instruction* createAShr(Operand lhs, Operand rhs);
 
-    std::string createAlloca();
+    Instruction* createICmp(ICmpInst::Pred pred, Operand lhs, Operand rhs);
 
-    std::string createLoad(const std::string& ptr);
+    Instruction* createAlloca();
 
-    void createStore(const std::string& val, const std::string& ptr);
+    Instruction* createLoad(Operand ptr);
 
-    void createBr(const std::string& condLabel, const std::string& thenLabel, const std::string& elseLabel);
+    void createStore(Operand val, Operand ptr);
+
+    void createBr(Operand cond, const std::string& thenLabel, const std::string& elseLabel);
 
     void createBr(const std::string& targetLabel);
 
-    void createRet(const std::string& val = "");
+    void createRet(Operand val);
+    
+    void createRet();
 
     PhiInst* createPHI();
 
@@ -151,8 +160,6 @@ public:
               std::unordered_set<BasicBlock*>& visited,
               BasicBlock* skip = nullptr);
     
-    // std::unordered_map<std::string, std::unordered_set<std::string>> printDominators();
-
     void dump() const {
         for (const auto& bb : blocks) {
             bb->print();
@@ -170,4 +177,6 @@ public:
     
     std::unordered_map<std::string, std::unordered_set<std::string>> 
     printDominators();
+
+    void globalOptimization();
 };

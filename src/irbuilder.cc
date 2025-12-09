@@ -2,7 +2,7 @@
 #include "irbuilder.hh"
 
 #include <functional>
-
+#include <algorithm>
 
 void IRBuilder::ensureNoTerminator() {
     if (currentBlock && currentBlock->hasTerminator()) {
@@ -27,126 +27,142 @@ BasicBlock* IRBuilder::createBasicBlock(const std::string& name) {
 }
 
 
-std::string IRBuilder::createAdd(const std::string& lhs, const std::string& rhs) {
+Instruction* IRBuilder::createAdd(Operand lhs, Operand rhs) {
     ensureNoTerminator();
 
     auto inst = std::make_unique<BinaryInst>(BinaryInst::Add, lhs, rhs);
 
     inst->name = getNewName();
-    std::string name = inst->name;
+    Instruction* ptr = inst.get();
 
     currentBlock->instructions.push_back(std::move(inst));
 
-    return name;
+    return ptr;
 }
 
 
-std::string IRBuilder::createSub(const std::string& lhs, const std::string& rhs) {
+Instruction* IRBuilder::createSub(Operand lhs, Operand rhs) {
     ensureNoTerminator();
 
     auto inst = std::make_unique<BinaryInst>(BinaryInst::Sub, lhs, rhs);
 
     inst->name = getNewName();
-    std::string name = inst->name;
+    Instruction* ptr = inst.get();
 
     currentBlock->instructions.push_back(std::move(inst));
 
-    return name;
+    return ptr;
 }
 
 
-std::string IRBuilder::createMul(const std::string& lhs, const std::string& rhs) {
+Instruction* IRBuilder::createMul(Operand lhs, Operand rhs) {
     ensureNoTerminator();
 
     auto inst = std::make_unique<BinaryInst>(BinaryInst::Mul, lhs, rhs);
 
     inst->name = getNewName();
-    std::string name = inst->name;
+    Instruction* ptr = inst.get();
 
     currentBlock->instructions.push_back(std::move(inst));
 
-    return name;
+    return ptr;
 }
 
+Instruction* IRBuilder::createAnd(Operand lhs, Operand rhs) {
+    ensureNoTerminator();
 
-std::string IRBuilder::createICmp(ICmpInst::Pred pred, const std::string& lhs, const std::string& rhs) {
+    auto inst = std::make_unique<BinaryInst>(BinaryInst::And, lhs, rhs);
+
+    inst->name = getNewName();
+    Instruction* ptr = inst.get();
+
+    currentBlock->instructions.push_back(std::move(inst));
+
+    return ptr;
+}
+
+Instruction* IRBuilder::createAShr(Operand lhs, Operand rhs) {
+    ensureNoTerminator();
+
+    auto inst = std::make_unique<BinaryInst>(BinaryInst::AShr, lhs, rhs);
+
+    inst->name = getNewName();
+    Instruction* ptr = inst.get();
+
+    currentBlock->instructions.push_back(std::move(inst));
+
+    return ptr;
+}
+
+Instruction* IRBuilder::createICmp(ICmpInst::Pred pred, Operand lhs, Operand rhs) {
     ensureNoTerminator();
 
     auto inst = std::make_unique<ICmpInst>(pred, lhs, rhs);
 
     inst->name = getNewName();
-    std::string name = inst->name;
+    Instruction* ptr = inst.get();
 
     currentBlock->instructions.push_back(std::move(inst));
 
-    return name;
+    return ptr;
 }
 
 
-std::string IRBuilder::createAlloca() {
+Instruction* IRBuilder::createAlloca() {
     ensureNoTerminator();
 
     auto inst = std::make_unique<AllocaInst>();
 
     inst->name = getNewName();
-    std::string name = inst->name;
+    Instruction* ptr = inst.get();
 
     currentBlock->instructions.push_back(std::move(inst));
 
-    return name;
+    return ptr;
 }
 
 
-std::string IRBuilder::createLoad(const std::string& ptr) {
+Instruction* IRBuilder::createLoad(Operand ptr) {
     ensureNoTerminator();
 
     auto inst = std::make_unique<LoadInst>(ptr);
 
     inst->name = getNewName();
-    std::string name = inst->name;
+    Instruction* ptr_ = inst.get();
 
     currentBlock->instructions.push_back(std::move(inst));
 
-    return name;
+    return ptr_;
 }
 
 
-void IRBuilder::createStore(const std::string& val, const std::string& ptr) {
+void IRBuilder::createStore(Operand val, Operand ptr) {
     ensureNoTerminator();
     currentBlock->instructions.push_back(std::make_unique<StoreInst>(val, ptr));
 }
 
-// void IRBuilder::createInstruction(const std::string& code) {
-//     if (!currentBlock) throw std::runtime_error("No current block!");
-//     ensureNoTerminator();
-//     currentBlock->instructions.push_back(std::make_unique<RegularInst>(code));
-// }
 
-
-void IRBuilder::createBr(const std::string& condLabel, const std::string& thenLabel, const std::string& elseLabel) {
+void IRBuilder::createBr(Operand cond, const std::string& thenLabel, const std::string& elseLabel) {
     std::vector<std::string> labels = {thenLabel, elseLabel};
-
-    std::string code = "br" + condLabel + ", label %" + thenLabel + ", label %" + elseLabel;
-
-    currentBlock->instructions.push_back(std::make_unique<TerminatorInst>(code, labels));
+    currentBlock->instructions.push_back(
+        std::make_unique<TerminatorInst>(TerminatorInst::BrCond, cond, labels));
 }
 
 
 void IRBuilder::createBr(const std::string& targetLabel) {
     std::vector<std::string> labels = {targetLabel};
-
-    std::string code = "br label %" + targetLabel;
-
-    currentBlock->instructions.push_back(std::make_unique<TerminatorInst>(code, labels));
+    currentBlock->instructions.push_back(
+        std::make_unique<TerminatorInst>(TerminatorInst::Br, Operand(), labels));
 }
 
 
-void IRBuilder::createRet(const std::string& val) {
-    std::string code = val.empty() ? "ret void" : ("ret i32 " + val);
+void IRBuilder::createRet(Operand val) {
+    currentBlock->instructions.push_back(
+        std::make_unique<TerminatorInst>(TerminatorInst::Ret, val, std::vector<std::string>{}));
+}
 
-    std::vector<std::string> label = {};
-
-    currentBlock->instructions.push_back(std::make_unique<TerminatorInst>(code, label));
+void IRBuilder::createRet() {
+    createRet(Operand());
 }
 
 
@@ -161,7 +177,7 @@ PhiInst* IRBuilder::createPHI() {
     PhiInst* raw = phi.get();
 
     currentBlock->instructions.push_back(std::move(phi));
-
+    
     return raw;
 }
 
@@ -498,4 +514,126 @@ void IRBuilder::analyzeLoops() {
 
     std::cout << "Root loop (blocks not in any loop):\n";
     rootLoop->print(2);
+}
+
+
+void IRBuilder::replaceInstruction(Instruction* oldInst, Operand newVal) {
+
+    std::vector<Instruction*> currentUsers = oldInst->users;
+    for (Instruction* user : currentUsers) {
+        user->replaceOperand(oldInst, newVal);
+    }
+    oldInst->users.clear();
+
+    oldInst->dropOperands();
+    
+    oldInst->erased = true;
+}
+
+Operand IRBuilder::foldInstruction(Instruction* inst) {
+    auto* bin = dynamic_cast<BinaryInst*>(inst);
+    if (!bin) return Operand();
+
+    if (bin->lhs.type == Operand::Int && bin->rhs.type == Operand::Int) {
+        int l = bin->lhs.intVal;
+        int r = bin->rhs.intVal;
+        int result = 0;
+        
+        switch(bin->op) {
+            case BinaryInst::Sub:  result = l - r; break;
+            case BinaryInst::And:  result = l & r; break;
+            case BinaryInst::AShr: result = l >> r; break;
+
+            case BinaryInst::Add:  result = l + r; break;
+            case BinaryInst::Mul:  result = l * r; break;
+        }
+        return Operand(result);
+    }
+    return Operand();
+}
+
+Operand IRBuilder::peepholeInstruction(Instruction* inst) {
+    auto* bin = dynamic_cast<BinaryInst*>(inst);
+    if (!bin) return Operand();
+
+    // Sub
+    if (bin->op == BinaryInst::Sub) {
+        // x - 0 -> x
+        if (bin->rhs.type == Operand::Int && bin->rhs.intVal == 0) {
+            return bin->lhs;
+        }
+        // x - x -> 0
+        if (bin->lhs == bin->rhs) {
+            return Operand(0);
+        }
+    }
+    
+    // And
+    if (bin->op == BinaryInst::And) {
+        // x & 0 -> 0 or 0 & x -> 0
+        if ((bin->rhs.type == Operand::Int && bin->rhs.intVal == 0) 
+            ||
+            (bin->lhs.type == Operand::Int && bin->lhs.intVal == 0)) {
+            return Operand(0);
+        }
+        // x & -1 -> x
+        if (bin->rhs.type == Operand::Int && bin->rhs.intVal == -1) {
+            return bin->lhs;
+        }
+        if (bin->lhs.type == Operand::Int && bin->lhs.intVal == -1) {
+            return bin->rhs;
+        }
+        // x & x -> x
+        if (bin->lhs == bin->rhs) {
+            return bin->lhs;
+        }
+    }
+
+    // AShr
+    if (bin->op == BinaryInst::AShr) {
+        // x >> 0 -> x
+        if (bin->rhs.type == Operand::Int && bin->rhs.intVal == 0) {
+            return bin->lhs;
+        }
+        // 0 >> x -> 0
+        if (bin->lhs.type == Operand::Int && bin->lhs.intVal == 0) {
+            return Operand(0);
+        }
+    }
+
+    return Operand();
+}
+
+void IRBuilder::globalOptimization() {
+    std::vector<BasicBlock*> rpo;
+    computeRPO(rpo);
+
+    for (BasicBlock* bb : rpo) {
+        for (auto& instPtr : bb->instructions) {
+            Instruction* inst = instPtr.get();
+            if (!inst || inst->erased) continue;
+
+            // Constant Folding
+            Operand folded = foldInstruction(inst);
+            if (folded.type != Operand::Undef) {
+                replaceInstruction(inst, folded);
+                continue; 
+            }
+
+            // Peephole
+            Operand peep = peepholeInstruction(inst);
+            if (peep.type != Operand::Undef) {
+                replaceInstruction(inst, peep);
+                continue;
+            }
+        }
+
+        bb->instructions.erase(
+            std::remove_if(bb->instructions.begin(), bb->instructions.end(),
+                [](const std::unique_ptr<Instruction>& inst) {
+                    return inst->erased;
+                }),
+            bb->instructions.end()
+        );
+    }
 }

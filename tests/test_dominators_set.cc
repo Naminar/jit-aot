@@ -15,24 +15,24 @@ TEST(GeneralTest, SimpleIfElse) {
 
     auto* entry = builder.createBasicBlock("entry");
     auto x = builder.createAlloca();
-    builder.createStore("42", x);
+    builder.createStore(42, x);
     auto val = builder.createLoad(x);
-    auto cmp = builder.createICmp(ICmpInst::SGT, val, "0");
+    auto cmp = builder.createICmp(ICmpInst::SGT, val, 0);
     builder.createBr(cmp, "then", "else");
 
     auto* thenBB = builder.createBasicBlock("then");
-    auto a = builder.createAdd(val, "1");
+    auto a = builder.createAdd(val, 1);
     builder.createBr("merge");
 
     auto* elseBB = builder.createBasicBlock("else");
-    auto b = builder.createSub(val, "1");
+    auto b = builder.createSub(val, 1);
     builder.createBr("merge");
 
     auto* mergeBB = builder.createBasicBlock("merge");
     auto* phi = builder.createPHI();
     phi->addIncoming(a, "then");
     phi->addIncoming(b, "else");
-    builder.createRet(phi->name);
+    builder.createRet(phi);
 
     auto dominators = builder.printDominators();
 
@@ -57,19 +57,19 @@ TEST(Test1, Test1) {
     builder.createBr("B");
 
     builder.createBasicBlock("B");
-    builder.createBr(" ", "C", "F");
+    builder.createBr(1, "C", "F");
 
     builder.createBasicBlock("C");
     builder.createBr("D");
 
     builder.createBasicBlock("D");
-    builder.createRet(" ");
+    builder.createRet();
 
     builder.createBasicBlock("E");
     builder.createBr("D");
 
     builder.createBasicBlock("F");
-    builder.createBr(" ", "E", "G");
+    builder.createBr(1, "E", "G");
 
     builder.createBasicBlock("G");
     builder.createBr("D");
@@ -109,25 +109,25 @@ TEST(Test2, Test2) {
     builder.createBr("B");
 
     builder.createBasicBlock("B");
-    builder.createBr(" ", "C", "J");
+    builder.createBr(1, "C", "J");
 
     builder.createBasicBlock("C");
     builder.createBr("D");
 
     builder.createBasicBlock("D");
-    builder.createBr(" ", "C", "E");
+    builder.createBr(1, "C", "E");
 
     builder.createBasicBlock("E");
     builder.createBr("F");
 
     builder.createBasicBlock("F");
-    builder.createBr(" ", "E", "G");
+    builder.createBr(1, "E", "G");
 
     builder.createBasicBlock("J");
     builder.createBr("C");
 
     builder.createBasicBlock("G");
-    builder.createBr(" ", "H", "I");
+    builder.createBr(1, "H", "I");
 
     builder.createBasicBlock("H");
     builder.createBr("B");
@@ -136,7 +136,7 @@ TEST(Test2, Test2) {
     builder.createBr("K");
 
     builder.createBasicBlock("K");
-    builder.createRet(" ");
+    builder.createRet();
 
     builder.analyzeLoops();
 
@@ -179,7 +179,7 @@ TEST(Test3, Test3) {
     builder.createBr("B");
 
     builder.createBasicBlock("B");
-    builder.createBr(" ", "E", "C");
+    builder.createBr(1, "E", "C");
 
     builder.createBasicBlock("C");
     builder.createBr("D");
@@ -188,19 +188,19 @@ TEST(Test3, Test3) {
     builder.createBr("G");
 
     builder.createBasicBlock("E");
-    builder.createBr(" ", "F", "D");
+    builder.createBr(1, "F", "D");
 
     builder.createBasicBlock("F");
-    builder.createBr(" ", "B", "H");
+    builder.createBr(1, "B", "H");
 
     builder.createBasicBlock("G");
-    builder.createBr(" ", "C", "I");
+    builder.createBr(1, "C", "I");
 
     builder.createBasicBlock("H");
-    builder.createBr(" ", "G", "I");
+    builder.createBr(1, "G", "I");
 
     builder.createBasicBlock("I");
-    builder.createRet(" ");
+    builder.createRet();
 
     auto dominators = builder.printDominators();
 

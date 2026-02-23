@@ -7,6 +7,7 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(SOURCES
     main.cc
     src/irbuilder.cc
+    src/liveness.cc
 )
 
 add_executable(build_ir ${SOURCES})
@@ -20,7 +21,7 @@ elseif(MSVC)
     target_compile_options(build_ir PRIVATE /W4)
 endif()
 
-add_library(ir_lib STATIC src/irbuilder.cc)
+add_library(ir_lib STATIC src/irbuilder.cc src/liveness.cc)
 target_include_directories(ir_lib PUBLIC include src)
 
 target_link_libraries(build_ir PRIVATE ir_lib)
@@ -29,7 +30,8 @@ enable_testing()
 
 find_package(GTest REQUIRED)
 
-add_executable(test_dominators tests/test_dominators_set.cc tests/test_loop.cc tests/loop.cc tests/test_opt.cc)
+add_executable(test_dominators tests/test_dominators_set.cc 
+    tests/test_loop.cc tests/loop.cc tests/test_opt.cc tests/test_liveness.cc)
 # add_executable(test_dominators tests/test_dominators_set.cc tests/loop.cc)
 target_include_directories(test_dominators PRIVATE tests)
 
@@ -42,3 +44,4 @@ add_test(NAME Test3 COMMAND test_dominators)
 
 add_test(NAME LoopAnalysis COMMAND test_dominators)
 add_test(NAME OptimizationTest COMMAND test_dominators)
+add_test(NAME LivenessTest COMMAND test_dominators)

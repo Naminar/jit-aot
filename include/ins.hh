@@ -34,6 +34,8 @@ public:
     enum class Type { Regular, Terminator, Phi };
     std::string name;
     bool erased = false;
+    int id = -1;
+    int line = -1;
 
     // Dataflow
     std::vector<Instruction*> operands;

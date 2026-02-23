@@ -1,10 +1,57 @@
 #include <unordered_set>
 #include <unordered_map>
 #include <stack>
+#include <vector>
+#include <unordered_set>
+#include <unordered_map>
+#include <algorithm>
 
 #include "ins.hh"
 
 class Loop;
+
+struct LiveRange {
+    int start, end;
+    bool operator<(const LiveRange& other) const { return start < other.start; }
+};
+
+struct LiveInterval {
+    Instruction* reg = nullptr;
+    std::vector<LiveRange> ranges;
+
+    void addRange(int start, int end) {
+        ranges.push_back({start, end});
+        std::sort(ranges.begin(), ranges.end());
+        std::vector<LiveRange> merged;
+        for (auto& r : ranges) {
+            if (merged.empty()) {
+                merged.push_back(r);
+            } else {
+                auto& last = merged.back();
+                if (r.start <= last.end) {
+                    last.end = std::max(last.end, r.end);
+                } else {
+                    merged.push_back(r);
+                }
+            }
+        }
+        ranges = std::move(merged);
+    }
+
+    // void setFrom(int start) {
+    //     if (!ranges.empty()) {
+    //         ranges[0].start = start;
+    //     }
+    // }
+
+     void setFrom(int start) {
+        if (!ranges.empty()) {
+            ranges[0].start = start;
+        } else {
+            ranges.push_back({start, start + 2});
+        }
+    }
+};
 
 class BasicBlock {
 public:
@@ -12,6 +59,12 @@ public:
     std::vector<std::unique_ptr<Instruction>> instructions;
     std::vector<BasicBlock*> successors;
     std::vector<BasicBlock*> predecessors;
+
+    public:
+    int from = -1;
+    int to = -1;
+    std::unordered_set<Instruction*> liveIn;
+
 
     Loop* parentLoop = nullptr;
 
@@ -103,6 +156,31 @@ private:
     size_t nextValueID = 0;
     // std::vector<Loop*> loopList;
 
+    // private:
+    std::vector<BasicBlock*> linearOrder;
+    std::unordered_map<Instruction*, LiveInterval> intervals;
+
+public:
+
+    LiveInterval* getLiveInterval(Instruction* inst) {
+        auto it = intervals.find(inst);
+        return it != intervals.end() ? &it->second : nullptr;
+    }
+
+    std::vector<LiveRange> getLiveRanges(Instruction* inst) {
+        auto it = intervals.find(inst);
+        return it != intervals.end() ? it->second.ranges : std::vector<LiveRange>{};
+    }
+
+    const std::vector<BasicBlock*>& getLinearOrder() const { return linearOrder; }
+
+    void computeLinearOrder();
+    void computeLiveness();
+
+    void printLinearOrder();
+    void printLiveness();
+
+private:
     std::unordered_map<BasicBlock*, std::unordered_set<BasicBlock*>> dominates;
 
     void ensureNoTerminator();

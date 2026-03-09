@@ -206,11 +206,37 @@ void IRBuilder::printLinearOrder() {
     }
 }
 
+// void IRBuilder::printLiveness() {
+//     std::cout << "\n=== Liveness Intervals ===\n";
+//     for (const auto& kv : intervals) {
+//         std::cout << kv.first->name << " : ";
+//         for (const auto& r : kv.second.ranges) {
+//             std::cout << "[" << r.start << ", " << r.end << ") ";
+//         }
+//         std::cout << "\n";
+//     }
+// }
+
 void IRBuilder::printLiveness() {
     std::cout << "\n=== Liveness Intervals ===\n";
+    std::vector<const std::pair<Instruction* const, LiveInterval>*> sorted_intervals;
+    sorted_intervals.reserve(intervals.size());
     for (const auto& kv : intervals) {
-        std::cout << kv.first->name << " : ";
-        for (const auto& r : kv.second.ranges) {
+        sorted_intervals.push_back(&kv);
+    }
+
+    std::sort(sorted_intervals.begin(), sorted_intervals.end(),
+        [](const auto* a, const auto* b) {
+            return a->first->name < b->first->name;
+        }
+    );
+
+    for (const auto* kv_ptr : sorted_intervals) {
+        const Instruction* inst = kv_ptr->first;
+        const LiveInterval& interval = kv_ptr->second;
+
+        std::cout << inst->name << " : ";
+        for (const auto& r : interval.ranges) {
             std::cout << "[" << r.start << ", " << r.end << ") ";
         }
         std::cout << "\n";

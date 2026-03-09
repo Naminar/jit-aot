@@ -57,7 +57,8 @@ TEST(RegAllocTest, ConditionalGraph) {
 
     std::cout << "\n=== RegAlloc output for ConditionalGraph ===" << std::endl;
     builder.dump();
-
+    // builder.printLinearOrder();
+    // builder.printLiveness();
 }
 
 TEST(RegAllocTest, SimpleReducibleLoopGraph) {
@@ -116,6 +117,9 @@ TEST(RegAllocTest, SimpleReducibleLoopGraph) {
 
     std::cout << "\n=== RegAlloc output for SimpleReducibleLoopGraph ===" << std::endl;
     builder.dump();
+
+    // builder.printLinearOrder();
+    // builder.printLiveness();
 
 }
 
@@ -203,4 +207,6 @@ TEST(RegAllocTest, NestedConditionInsideLoopGraph) {
     std::cout << "\n=== RegAlloc output for NestedConditionInsideLoopGraph ===" << std::endl;
     builder.dump();
 
+    // builder.printLinearOrder();
+    // builder.printLiveness();
 }

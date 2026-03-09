@@ -162,6 +162,9 @@ private:
 
 public:
 
+    void allocateRegisters(int numRegs);
+    void insertSpillFillInstructions();
+
     LiveInterval* getLiveInterval(Instruction* inst) {
         auto it = intervals.find(inst);
         return it != intervals.end() ? &it->second : nullptr;

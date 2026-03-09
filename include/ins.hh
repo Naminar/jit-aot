@@ -37,6 +37,9 @@ public:
     int id = -1;
     int line = -1;
 
+    int allocatedReg = -1;
+    int allocatedStackSlot = -1;
+
     // Dataflow
     std::vector<Instruction*> operands;
     std::vector<Instruction*> users;
@@ -79,11 +82,18 @@ public:
             }
         }
     }
+
+    std::string loc() const {
+        if (allocatedReg != -1) return " [R" + std::to_string(allocatedReg) + "]";
+        // if (allocatedStackSlot != -1) return " [S" + std::to_string(allocatedStackSlot) + "]";
+        return "";
+    }
+
 };
 
 inline std::string Operand::toString() const {
     if (type == Int) return std::to_string(intVal);
-    if (type == Inst && instVal) return instVal->name;
+    if (type == Inst && instVal) return instVal->name + instVal->loc();
     return "undef";
 }
 
@@ -113,7 +123,7 @@ public:
             case And: opStr = "and"; break;
             case AShr: opStr = "ashr"; break;
         }
-        std::cout << "  " << name << " = " << opStr << " " << lhs.toString() << ", " << rhs.toString() << "\n";
+        std::cout << "  " << name << loc() << " = " << opStr << " " << lhs.toString() << ", " << rhs.toString() << "\n";
     }
 };
 
@@ -144,7 +154,7 @@ public:
             case SGE: predStr = "sge"; break;
             case SLE: predStr = "sle"; break;
         }
-        std::cout << "  " << name << " = icmp " << predStr << " " << lhs.toString() << ", " << rhs.toString() << "\n";
+        std::cout << "  " << name << loc() << " = icmp " << predStr << " " << lhs.toString() << ", " << rhs.toString() << "\n";
     }
 };
 
@@ -152,7 +162,7 @@ class AllocaInst : public Instruction {
 public:
     AllocaInst() {}
     void print() const override {
-        std::cout << "  " << name << " = alloca\n";
+        std::cout << "  " << name << loc() << " = alloca\n";
     }
 };
 
@@ -169,7 +179,7 @@ public:
     }
 
     void print() const override {
-        std::cout << "  " << name << " = load " << ptr.toString() << "\n";
+        std::cout << "  " << name << loc() << " = load " << ptr.toString() << "\n";
     }
 };
 
@@ -192,6 +202,37 @@ public:
         std::cout << "  store " << val.toString() << ", " << ptr.toString() << "\n";
     }
 };
+
+class SpillInst : public Instruction {
+public:
+    Operand val;
+    int stackSlot;
+    
+    SpillInst(Operand v, int slot) : val(v), stackSlot(slot) {
+        if (v.type == Operand::Inst) addOperand(v.instVal);
+    }
+
+    void replaceOperand(Instruction* oldOp, Operand newOp) override {
+        Instruction::replaceOperand(oldOp, newOp);
+        if (val.type == Operand::Inst && val.instVal == oldOp) val = newOp;
+    }
+
+    void print() const override {
+        std::cout << "  spill " << val.toString() << " -> [S" << stackSlot << "]\n";
+    }
+};
+
+class FillInst : public Instruction {
+public:
+    int stackSlot;
+    
+    FillInst(int slot) : stackSlot(slot) {}
+
+    void print() const override {
+        std::cout << "  " << name << loc() << " = fill [S" << stackSlot << "]\n";
+    }
+};
+
 
 class TerminatorInst : public Instruction {
 public:
@@ -253,7 +294,7 @@ public:
     Type getInstType() const override { return Type::Phi; }
 
     void print() const override {
-        std::cout << "  " << name << " = phi";
+        std::cout << "  " << name << loc() << " = phi";
         for (size_t i = 0; i < incomings.size(); ++i) {
             if (i == 0) 
                 std::cout << " [ " << incomings[i].val.toString() << ", %" << incomings[i].blockName << " ]";

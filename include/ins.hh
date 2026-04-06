@@ -97,6 +97,49 @@ inline std::string Operand::toString() const {
     return "undef";
 }
 
+class ParamInst : public Instruction {
+public:
+    int paramIdx;
+    ParamInst(int idx) : paramIdx(idx) {}
+    void print() const override {
+        std::cout << "  " << name << loc() << " = param " << paramIdx << "\n";
+    }
+};
+
+class CallInst : public Instruction {
+public:
+    std::string funcName;
+    
+    // ptr to IRBuilder
+    void* targetFunc;
+    std::vector<Operand> args;
+    
+    CallInst(const std::string& fname, void* target, const std::vector<Operand>& a)
+        : funcName(fname), targetFunc(target), args(a) {
+        for (auto& arg : args) {
+            if (arg.type == Operand::Inst) addOperand(arg.instVal);
+        }
+    }
+    
+    void replaceOperand(Instruction* oldOp, Operand newOp) override {
+        Instruction::replaceOperand(oldOp, newOp);
+        for (auto& arg : args) {
+            if (arg.type == Operand::Inst && arg.instVal == oldOp) {
+                arg = newOp;
+            }
+        }
+    }
+    
+    void print() const override {
+        std::cout << "  " << name << loc() << " = call " << funcName << "(";
+        for (size_t i = 0; i < args.size(); ++i) {
+            std::cout << args[i].toString();
+            if (i + 1 < args.size()) std::cout << ", ";
+        }
+        std::cout << ")\n";
+    }
+};
+
 class BinaryInst : public Instruction {
 public:
     enum Op { Add, Sub, Mul, And, AShr };

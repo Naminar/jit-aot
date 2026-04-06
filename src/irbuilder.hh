@@ -1,9 +1,10 @@
+
+#pragma once
+
 #include <unordered_set>
 #include <unordered_map>
 #include <stack>
 #include <vector>
-#include <unordered_set>
-#include <unordered_map>
 #include <algorithm>
 
 #include "ins.hh"
@@ -38,12 +39,6 @@ struct LiveInterval {
         ranges = std::move(merged);
     }
 
-    // void setFrom(int start) {
-    //     if (!ranges.empty()) {
-    //         ranges[0].start = start;
-    //     }
-    // }
-
      void setFrom(int start) {
         if (!ranges.empty()) {
             ranges[0].start = start;
@@ -60,11 +55,9 @@ public:
     std::vector<BasicBlock*> successors;
     std::vector<BasicBlock*> predecessors;
 
-    public:
     int from = -1;
     int to = -1;
     std::unordered_set<Instruction*> liveIn;
-
 
     Loop* parentLoop = nullptr;
 
@@ -133,19 +126,6 @@ public:
             for (auto* il : innerLoops) il->print(indent + 4);
         }
     }
-
-    LoopInfoExpected makeLoopExpected(const std::string& headerName,
-        const std::initializer_list<std::string>& backEdges,
-        const std::initializer_list<std::string>& blocks, bool irreducible = false) 
-    {
-        LoopInfoExpected loop;
-        loop.header = headerName;
-        loop.backEdges = std::unordered_set<std::string>(backEdges.begin(), backEdges.end());
-        loop.blocks = std::unordered_set<std::string>(blocks.begin(), blocks.end());
-        loop.isIrreducible = irreducible;
-        return loop;
-    }
-
 };
 
 class IRBuilder {
@@ -154,14 +134,32 @@ private:
     std::unordered_map<std::string, BasicBlock*> blockMap;
     BasicBlock* currentBlock = nullptr;
     size_t nextValueID = 0;
-    // std::vector<Loop*> loopList;
 
-    // private:
     std::vector<BasicBlock*> linearOrder;
     std::unordered_map<Instruction*, LiveInterval> intervals;
 
 public:
+    std::string functionName = "main";
+    std::vector<std::unique_ptr<Instruction>> params;
 
+    Instruction* createParam() {
+        auto inst = std::make_unique<ParamInst>(params.size());
+        inst->name = "%p" + std::to_string(params.size());
+        Instruction* ptr = inst.get();
+        params.push_back(std::move(inst));
+        return ptr;
+    }
+
+    Instruction* createCall(const std::string& funcName, IRBuilder* targetFunc, const std::vector<Operand>& args) {
+        ensureNoTerminator();
+        auto inst = std::make_unique<CallInst>(funcName, targetFunc, args);
+        inst->name = getNewName();
+        Instruction* ptr = inst.get();
+        currentBlock->instructions.push_back(std::move(inst));
+        return ptr;
+    }
+
+    void inlineCall(Instruction* callInst);
     void allocateRegisters(int numRegs);
     void insertSpillFillInstructions();
 
@@ -192,20 +190,19 @@ private:
         return "%v" + std::to_string(nextValueID++);
     }
 
-    // Optimization helpers
     void replaceInstruction(Instruction* oldInst, Operand newVal);
     Operand foldInstruction(Instruction* inst);
     Operand peepholeInstruction(Instruction* inst);
 
 public:
+
+    friend class CallInst; 
+
     std::vector<Loop*> loopList;
     std::vector<std::unique_ptr<Loop>> allLoops;
     
     BasicBlock* createBasicBlock(const std::string& name);
-
-    void setInsertPoint(BasicBlock* bb) {
-        currentBlock = bb;
-    }
+    void setInsertPoint(BasicBlock* bb) { currentBlock = bb; }
 
     Instruction* createAdd(Operand lhs, Operand rhs);
 
@@ -230,16 +227,14 @@ public:
     void createBr(const std::string& targetLabel);
 
     void createRet(Operand val);
-    
+
     void createRet();
 
     PhiInst* createPHI();
 
     void buildCFG();
 
-    void dfsVisit(BasicBlock* node,
-              std::unordered_set<BasicBlock*>& visited,
-              BasicBlock* skip = nullptr);
+    void dfsVisit(BasicBlock* node, std::unordered_set<BasicBlock*>& visited, BasicBlock* skip = nullptr);
     
     void dump() const {
         for (const auto& bb : blocks) {
@@ -253,11 +248,9 @@ public:
 
     void analyzeLoops();
 
-    void collectBackEdges( std::unordered_map<BasicBlock*, 
-        std::vector<BasicBlock*>> &backEdgesByHeader, std::unordered_map<BasicBlock*, bool> &isIrreducibleFlag);
-    
-    std::unordered_map<std::string, std::unordered_set<std::string>> 
-    printDominators();
+    void collectBackEdges( std::unordered_map<BasicBlock*, std::vector<BasicBlock*>> &backEdgesByHeader, 
+        std::unordered_map<BasicBlock*, bool> &isIrreducibleFlag);
 
+    std::unordered_map<std::string, std::unordered_set<std::string>> printDominators();
     void globalOptimization();
 };

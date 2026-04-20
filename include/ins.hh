@@ -246,6 +246,43 @@ public:
     }
 };
 
+class NullCheckInst : public Instruction {
+public:
+    Operand ptr;
+    NullCheckInst(Operand p) : ptr(p) {
+        if (p.type == Operand::Inst) addOperand(p.instVal);
+    }
+
+    void replaceOperand(Instruction* oldOp, Operand newOp) override {
+        Instruction::replaceOperand(oldOp, newOp);
+        if (ptr.type == Operand::Inst && ptr.instVal == oldOp) ptr = newOp;
+    }
+
+    void print() const override {
+        std::cout << "  check.null " << ptr.toString() << "\n";
+    }
+};
+
+class BoundsCheckInst : public Instruction {
+public:
+    Operand ptr, idx;
+    BoundsCheckInst(Operand p, Operand i) : ptr(p), idx(i) {
+        if (p.type == Operand::Inst) addOperand(p.instVal);
+        if (i.type == Operand::Inst) addOperand(i.instVal);
+    }
+
+    void replaceOperand(Instruction* oldOp, Operand newOp) override {
+        Instruction::replaceOperand(oldOp, newOp);
+        if (ptr.type == Operand::Inst && ptr.instVal == oldOp) ptr = newOp;
+        if (idx.type == Operand::Inst && idx.instVal == oldOp) idx = newOp;
+    }
+
+    void print() const override {
+        std::cout << "  check.bounds " << ptr.toString() << ", " << idx.toString() << "\n";
+    }
+};
+
+
 class SpillInst : public Instruction {
 public:
     Operand val;

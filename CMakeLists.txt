@@ -33,7 +33,7 @@ enable_testing()
 find_package(GTest REQUIRED)
 
 add_executable(test_dominators tests/test_dominators_set.cc 
-    tests/test_loop.cc tests/loop.cc tests/test_opt.cc tests/test_liveness.cc tests/test_regalloc.cc tests/test_inlining.cc)
+    tests/test_loop.cc tests/loop.cc tests/test_opt.cc tests/test_liveness.cc tests/test_regalloc.cc tests/test_inlining.cc tests/test_checks.cc)
 # add_executable(test_dominators tests/test_dominators_set.cc tests/loop.cc)
 target_include_directories(test_dominators PRIVATE tests)
 
@@ -50,3 +50,4 @@ add_test(NAME LivenessTest COMMAND test_dominators)
 add_test(NAME RegAllocTest COMMAND test_dominators)
 
 add_test(NAME InliningTest COMMAND test_dominators)
+add_test(NAME CheckOptimization COMMAND test_dominators)

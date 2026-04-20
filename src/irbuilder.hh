@@ -222,6 +222,10 @@ public:
 
     void createStore(Operand val, Operand ptr);
 
+    void createNullCheck(Operand ptr);
+
+    void createBoundsCheck(Operand ptr, Operand idx);
+
     void createBr(Operand cond, const std::string& thenLabel, const std::string& elseLabel);
 
     void createBr(const std::string& targetLabel);
@@ -252,5 +256,8 @@ public:
         std::unordered_map<BasicBlock*, bool> &isIrreducibleFlag);
 
     std::unordered_map<std::string, std::unordered_set<std::string>> printDominators();
+
     void globalOptimization();
+
+    void optimizeChecks();
 };

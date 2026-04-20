@@ -165,6 +165,16 @@ void IRBuilder::createRet() {
     createRet(Operand());
 }
 
+void IRBuilder::createNullCheck(Operand ptr) {
+    ensureNoTerminator();
+    currentBlock->instructions.push_back(std::make_unique<NullCheckInst>(ptr));
+}
+
+void IRBuilder::createBoundsCheck(Operand ptr, Operand idx) {
+    ensureNoTerminator();
+    currentBlock->instructions.push_back(std::make_unique<BoundsCheckInst>(ptr, idx));
+}
+
 
 PhiInst* IRBuilder::createPHI() {
     if (!currentBlock)
@@ -181,6 +191,108 @@ PhiInst* IRBuilder::createPHI() {
     return raw;
 }
 
+void IRBuilder::optimizeChecks() {
+    computeDominators();
+
+    std::unordered_map<Instruction*, BasicBlock*> instToBlockMap;
+    for (auto& bbPtr : blocks) {
+        for (auto& instPtr : bbPtr->instructions) {
+            instToBlockMap[instPtr.get()] = bbPtr.get();
+        }
+    }
+
+    std::unordered_set<Instruction*> to_erase_set;
+
+    std::vector<BasicBlock*> rpo;
+    computeRPO(rpo);
+
+    for (BasicBlock* bb1 : rpo) {
+        for (auto& instPtr1 : bb1->instructions) {
+            Instruction* check1 = instPtr1.get();
+            if (check1->erased || to_erase_set.count(check1)) continue;
+
+            Operand ptr_operand1;
+            Operand idx_operand1;
+            bool is_null_check = false;
+            bool is_bounds_check = false;
+
+            if (auto* nc = dynamic_cast<NullCheckInst*>(check1)) {
+                ptr_operand1 = nc->ptr;
+                is_null_check = true;
+            } else if (auto* bc = dynamic_cast<BoundsCheckInst*>(check1)) {
+                ptr_operand1 = bc->ptr;
+                idx_operand1 = bc->idx;
+                is_bounds_check = true;
+            } else {
+                continue;
+            }
+
+            if (ptr_operand1.type != Operand::Inst) continue;
+            Instruction* ptr_inst = ptr_operand1.instVal;
+
+            std::vector<Instruction*> users = ptr_inst->users;
+            for (Instruction* check2 : users) {
+                if (check2 == check1 || check2->erased || to_erase_set.count(check2)) continue;
+
+                auto it = instToBlockMap.find(check2);
+                if (it == instToBlockMap.end()) continue;
+                BasicBlock* bb2 = it->second;
+
+                bool is_dominated = (dominates.count(bb1) && dominates.at(bb1).count(bb2));
+                
+                if (is_dominated && bb1 == bb2) {
+                    bool found_check1 = false;
+                    bool dominated_in_block = false;
+                    for (auto& i : bb1->instructions) {
+                        if (i.get() == check1) {
+                            found_check1 = true;
+                        }
+                        if (i.get() == check2) {
+                            if (found_check1) {
+                                dominated_in_block = true;
+                            }
+                            break;
+                        }
+                    }
+                    is_dominated = dominated_in_block;
+                }
+
+                if (!is_dominated) continue;
+
+                if (is_null_check) {
+                    if (auto* nc2 = dynamic_cast<NullCheckInst*>(check2)) {
+                        if (nc2->ptr == ptr_operand1) {
+                            to_erase_set.insert(check2);
+                        }
+                    }
+                } else if (is_bounds_check) {
+                    if (auto* bc2 = dynamic_cast<BoundsCheckInst*>(check2)) {
+                        if (bc2->ptr == ptr_operand1 && bc2->idx == idx_operand1) {
+                             to_erase_set.insert(check2);
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    if (to_erase_set.empty()) return;
+
+    for (auto& bbPtr : blocks) {
+        bbPtr->instructions.erase(
+            std::remove_if(bbPtr->instructions.begin(), bbPtr->instructions.end(),
+                [&](const std::unique_ptr<Instruction>& inst) {
+                    if (to_erase_set.count(inst.get())) {
+                        inst->erased = true;
+                        inst->dropOperands();
+                        return true;
+                    }
+                    return false;
+                }),
+            bbPtr->instructions.end()
+        );
+    }
+}
 
 void IRBuilder::buildCFG() {
     for (auto& bb : blocks) {
